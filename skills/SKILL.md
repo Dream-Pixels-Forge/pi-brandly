@@ -99,6 +99,60 @@ brandly_video_edit(projectID="...", operation="concat", inputFiles=["shot-1.mp4"
 brandly_render_video(projectID="...", compositionPath="./composition.tsx", quality="high")
 ```
 
+## Advanced Tools (New)
+Beyond the core pipeline, Brandly ships power-user tools ported from the brandly-plugin:
+
+### brandly_assemble — Montage assembly
+Discovers all generated clips/images/audio and builds a complete Remotion montage project.
+```bash
+brandly_assemble(projectID="...", style="montage", transitionType="fade")
+```
+
+### brandly_motion_graphics — Kinetic typography & motion design
+Generates Remotion motion graphics (title reveals, product showcases, stat counters, kinetic text).
+```bash
+brandly_motion_graphics(projectID="...", preset="title-reveal")
+brandly_motion_graphics(projectID="...", preset="stats-counter")
+```
+
+### brandly_brand_kit — Consistent branding
+Store and apply brand colors, fonts, logo, tone, voiceover & music preferences.
+```bash
+brandly_brand_kit(action="create", name="Acme", colors={primary:"#0a0a0a", accent:"#6c63ff"})
+brandly_brand_kit(action="apply", brandKitId="bk-...", projectID="...")
+brandly_brand_kit(action="list")
+```
+
+### brandly_batch_variations — A/B concept testing
+Spin up N variations of a project with different hooks, styles, CTAs, and tones.
+```bash
+brandly_batch_variations(projectID="...", variations=3)
+```
+
+### brandly_auto_caption — Word-level subtitles
+Generate an SRT file + Remotion overlay component with word-level highlighting.
+```bash
+brandly_auto_caption(projectID="...", style="tiktok", exportSrt=true)
+```
+
+### brandly_scene_consistency — Lock characters/products
+Define characters/products and keep them visually consistent across shots.
+```bash
+brandly_scene_consistency(action="create_character", projectID="...", name="Hero", type="person")
+brandly_scene_consistency(action="generate_consistent_prompt", projectID="...", sceneCount=5)
+```
+
+## Abstract Background Generator
+For premium, text-free abstract backdrops (usable as `backgroundImage` in `brandly_motion_graphics` or as standalone 8K wallpapers), use the bundled Python generator:
+```bash
+cd scripts
+python generator.py --abstract-background      # one random premium background prompt
+python generator.py                            # a general cinematic prompt
+```
+- `references/abstract-backgrounds.md` — curated signature + variation prompts
+- `scripts/data/*.json` — prompt building blocks (styles, materials, lighting, color palettes, …)
+- `scripts/presets/*.json` — ready-made looks (geometric, glass, luxury, organic, paper)
+
 ## Pipeline Phases
 0. **init** — Setup project
 1. **trends** — Research viral formats

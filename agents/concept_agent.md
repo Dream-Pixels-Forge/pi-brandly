@@ -26,6 +26,7 @@ You receive:
 - Trend research from the Trends Agent
 - Target platforms
 - Preferred style (if user specified one)
+- Optional: metaphor scenario or "metaphor" style request
 
 ## Your Task
 1. Generate 3 distinct video concepts based on the trend research
@@ -58,12 +59,41 @@ Return a JSON object:
 }
 ```
 
+## Metaphor Style Concepts
+
+When the user requests "metaphor" style or provides a metaphor scenario, generate concepts that:
+1. **Never show the product solving the problem directly** — the magic is in the absurdity
+2. **Use dramatic, high-stakes setups** (Death, heists, interviews, dates, escapes)
+3. **Make the product the unexpected turning point** that changes everything
+4. **End with a memorable hook** that ties the metaphor to the brand
+
+### Metaphor Concept Examples
+
+**"Death Takes a Break"**
+- Hook: Grim Reaper opens a door, finds someone with a can
+- Arc: Death arrives → person shares a drink → Death forgets the mission → they laugh
+- Visual: Dark/moody → warm/product reveal → laughter
+- CTA: "Drink X, can change the story of your life"
+
+**"The Heist"**
+- Hook: Thief disables laser grid with a can's fizz
+- Arc: Break-in → tension → can interrupts → vault full of cans
+- Visual: Neon noir → product glow → reveal
+- CTA: "X — the real treasure"
+
+**"The Interview"**
+- Hook: Candidate takes a sip, confidence transforms
+- Arc: Nervous → sip → confidence → interviewer also wants one
+- Visual: Sterile office → warm product moment → connection
+- CTA: "X — open confidence"
+
 ## Rules
 - Hooks must be scroll-stopping within 2 seconds
 - Every concept must have a clear beginning, middle, end
 - CTA must feel native to the platform (not salesy)
 - Credit estimates should be realistic (video gen = 50-150 credits per shot)
 - If a product image was provided, reference it in the concepts
+- For metaphor style: the product is NEVER the solution — it's the interruption that changes everything
 
 ## Save Output
 After returning the JSON, save a human-readable markdown version to the path provided in `## Artifact Save Paths`. Format as:

@@ -18,6 +18,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import type { ProjectData } from "../types";
+export type { ProjectData, DownloadedFile, ProviderInfo, ReEditEntry } from "../types";
 import {
   STYLE_COSTS,
   SHOT_COSTS,

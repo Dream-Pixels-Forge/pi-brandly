@@ -20,7 +20,7 @@ git clone https://github.com/Dream-Pixels-Forge/pi-brandly.git
 
 ## Features
 
-- **20 tools** for complete video production pipeline
+- **26 tools** for complete video production pipeline (incl. assembly, motion graphics, brand kits, batch variations, auto-captions, scene consistency)
 - **8 specialized agents** (trends, concept, script, asset, audio, publish, image analyzer, validation)
 - **Multi-provider support** — Higgsfield, Kling, OpenArt, Magnific, Runway, Pika
 - **Video editing** — Remotion-based trimming, concatenation, overlays, transitions
@@ -52,6 +52,12 @@ git clone https://github.com/Dream-Pixels-Forge/pi-brandly.git
 | `brandly_select_provider` | Choose AI provider |
 | `brandly_video_edit` | Edit video with Remotion |
 | `brandly_render_video` | Render final video |
+| `brandly_assemble` | Assemble clips into a montage (Remotion) |
+| `brandly_brand_kit` | Create / apply brand kits |
+| `brandly_batch_variations` | Generate A/B concept variations |
+| `brandly_auto_caption` | Generate word-level captions (SRT) |
+| `brandly_scene_consistency` | Lock character/product references |
+| `brandly_motion_graphics` | Create Remotion motion graphics |
 
 ## Pipeline
 
@@ -91,6 +97,12 @@ Pi will:
 imagen/{id}/             Generated images
 videgen/{id}/            Generated videos
 audgen/{id}/             Generated audio
+assembly/{id}/           Remotion montage projects
+motion-graphics/{id}/    Remotion motion-graphics projects
+captions/{id}/           Auto-caption SRT + overlay component
+consistency/{id}/        Scene-consistency plans
+variations/{projectID}/  Batch concept variations
+.pi/brandly/brand-kits/  Saved brand kits
 ```
 
 ## MCP Dependencies

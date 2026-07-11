@@ -36,6 +36,12 @@ import { createDownloadTool } from "./tools/download.js";
 import { createProviderTool } from "./tools/provider.js";
 import { createVideoEditTool } from "./tools/video-edit.js";
 import { createVideoRenderTool } from "./tools/video-render.js";
+import { createAssemblyTool } from "./tools/assembly.js";
+import { createBrandKitTool } from "./tools/brand-kit.js";
+import { createBatchVariationsTool } from "./tools/batch-variations.js";
+import { createAutoCaptionTool } from "./tools/auto-caption.js";
+import { createSceneConsistencyTool } from "./tools/scene-consistency.js";
+import { createMotionGraphicsTool } from "./tools/motion-graphics.js";
 
 /**
  * Extension directory (for bundled agents, skills, templates)
@@ -647,31 +653,282 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
+  // 21. brandly_assemble — Montage assembly via Remotion (NEW)
+  pi.registerTool({
+    name: "brandly_assemble",
+    label: "Brandly Assemble",
+    description: "Assemble all generated video clips, images, and audio into a final montage using a complete Remotion project. Discovers assets, creates the project structure, and optionally renders the final video.",
+    promptSnippet: "Assemble clips into a montage",
+    promptGuidelines: [
+      "Use brandly_assemble after asset/audio phases to build the final montage",
+      "Generates a Remotion project with transitions and text overlays",
+    ],
+    parameters: Type.Object({
+      projectID: Type.String({ description: "The project UUID" }),
+      style: Type.Optional(Type.Union([
+        Type.Literal("montage"),
+        Type.Literal("cinematic"),
+        Type.Literal("ugc"),
+        Type.Literal("continuous"),
+        Type.Literal("simple"),
+      ], { default: "montage", description: "Assembly style preset" })),
+      clipDuration: Type.Optional(Type.Number({ description: "Default duration in seconds for each video clip", default: 3 })),
+      transitionType: Type.Optional(Type.Union([
+        Type.Literal("fade"),
+        Type.Literal("slide"),
+        Type.Literal("wipe"),
+        Type.Literal("none"),
+      ], { default: "fade", description: "Transition type between clips" })),
+      transitionDuration: Type.Optional(Type.Number({ description: "Transition duration in seconds", default: 0.5 })),
+      fps: Type.Optional(Type.Number({ description: "Frames per second", default: 30 })),
+      width: Type.Optional(Type.Number({ description: "Output width in pixels", default: 1920 })),
+      height: Type.Optional(Type.Number({ description: "Output height in pixels", default: 1080 })),
+      outputPath: Type.Optional(Type.String({ description: "Output file path for rendered video" })),
+      autoRender: Type.Optional(Type.Boolean({ description: "Automatically render after creating the project", default: false })),
+      clipOrder: Type.Optional(Type.Array(Type.String(), { description: "Optional explicit clip order by filename" })),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, extCtx) {
+      const context = ensureContext(extCtx.cwd);
+      const tool = createAssemblyTool(context);
+      const result = await tool.execute(params as Record<string, unknown>);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    },
+  });
+
+  // 22. brandly_brand_kit — Manage brand kits (NEW)
+  pi.registerTool({
+    name: "brandly_brand_kit",
+    label: "Brandly Brand Kit",
+    description: "Manage brand kits — store colors, fonts, logo, tone of voice, voiceover style, and music preferences. Apply a brand kit to a project for consistent branding.",
+    promptSnippet: "Manage brand kits",
+    promptGuidelines: [
+      "Use brandly_brand_kit to create, update, list, and apply brand kits",
+      "Apply a kit to a project with action='apply'",
+    ],
+    parameters: Type.Object({
+      action: Type.Union([
+        Type.Literal("create"),
+        Type.Literal("get"),
+        Type.Literal("update"),
+        Type.Literal("delete"),
+        Type.Literal("list"),
+        Type.Literal("apply"),
+      ], { description: "Action to perform" }),
+      brandKitId: Type.Optional(Type.String({ description: "Brand kit ID (required for get/update/delete/apply)" })),
+      projectID: Type.Optional(Type.String({ description: "Project ID to apply brand kit to (required for apply)" })),
+      name: Type.Optional(Type.String({ description: "Brand kit name" })),
+      colors: Type.Optional(Type.Any({ description: "Brand colors (primary/secondary/accent/background/text hex)" })),
+      fonts: Type.Optional(Type.Any({ description: "Font families (heading/body/accent)" })),
+      logo: Type.Optional(Type.Any({ description: "Logo configuration (url/width/height/position)" })),
+      tone: Type.Optional(Type.Array(Type.String(), { description: "Brand tone keywords" })),
+      tagline: Type.Optional(Type.String({ description: "Brand tagline" })),
+      voiceover: Type.Optional(Type.Any({ description: "Voiceover preferences (style/gender/pace)" })),
+      music: Type.Optional(Type.Any({ description: "Music preferences (genre/mood/tempo)" })),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, extCtx) {
+      const context = ensureContext(extCtx.cwd);
+      const tool = createBrandKitTool(context);
+      const result = await tool.execute(params as Record<string, unknown>);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    },
+  });
+
+  // 23. brandly_batch_variations — Multiple concept variations (NEW)
+  pi.registerTool({
+    name: "brandly_batch_variations",
+    label: "Brandly Batch Variations",
+    description: "Generate multiple variations of a video concept with different hooks, styles, CTAs, and tones. Create N variations from one idea, each as a separate project, then compare and pick the best.",
+    promptSnippet: "Generate batch variations",
+    promptGuidelines: [
+      "Use brandly_batch_variations to A/B test concepts from a single project",
+      "Each variation is a separate project under variations/{id}",
+    ],
+    parameters: Type.Object({
+      projectID: Type.String({ description: "Source project ID" }),
+      variations: Type.Optional(Type.Number({ description: "Number of variations (1-10, default 3)" })),
+      autoGenerate: Type.Optional(Type.Boolean({ description: "Auto-generate variation configs" })),
+      customVariations: Type.Optional(Type.Array(Type.Any({ description: "Manual variation configs (name/style/hook/cta/tone)" }))),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, extCtx) {
+      const context = ensureContext(extCtx.cwd);
+      const tool = createBatchVariationsTool(context);
+      const result = await tool.execute(params as Record<string, unknown>);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    },
+  });
+
+  // 24. brandly_auto_caption — Word-level captions (NEW)
+  pi.registerTool({
+    name: "brandly_auto_caption",
+    label: "Brandly Auto Caption",
+    description: "Generate word-level captions/subtitles from voiceover audio. Outputs an SRT file and a Remotion component that can be overlaid on the final video with word-level highlighting and animations.",
+    promptSnippet: "Generate auto captions",
+    promptGuidelines: [
+      "Use brandly_auto_caption to add subtitles to a finished video",
+      "Produces SRT + a Remotion overlay component",
+    ],
+    parameters: Type.Object({
+      projectID: Type.String({ description: "Project ID" }),
+      audioPath: Type.Optional(Type.String({ description: "Path to voiceover audio file" })),
+      captions: Type.Optional(Type.Array(Type.Any({ description: "Pre-generated caption segments (text/start/end/words)" }))),
+      style: Type.Optional(Type.Union([
+        Type.Literal("tiktok"),
+        Type.Literal("youtube"),
+        Type.Literal("cinematic"),
+        Type.Literal("minimal"),
+        Type.Literal("bold"),
+        Type.Literal("custom"),
+      ], { description: "Caption style preset" })),
+      customStyle: Type.Optional(Type.Any({ description: "Custom caption style (overrides preset)" })),
+      exportSrt: Type.Optional(Type.Boolean({ description: "Export SRT subtitle file" })),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, extCtx) {
+      const context = ensureContext(extCtx.cwd);
+      const tool = createAutoCaptionTool(context);
+      const result = await tool.execute(params as Record<string, unknown>);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    },
+  });
+
+  // 25. brandly_scene_consistency — Lock character/product refs (NEW)
+  pi.registerTool({
+    name: "brandly_scene_consistency",
+    label: "Brandly Scene Consistency",
+    description: "Lock character and product references across multiple shots for visual consistency. Define characters/products, assign them to scenes, and generate prompts that maintain consistent appearance throughout the video.",
+    promptSnippet: "Lock scene consistency",
+    promptGuidelines: [
+      "Use brandly_scene_consistency before the asset phase for multi-shot videos",
+      "Generate consistent prompts with generate_consistent_prompt",
+    ],
+    parameters: Type.Object({
+      action: Type.Union([
+        Type.Literal("create_character"),
+        Type.Literal("update_character"),
+        Type.Literal("list_characters"),
+        Type.Literal("delete_character"),
+        Type.Literal("assign_to_scene"),
+        Type.Literal("remove_from_scene"),
+        Type.Literal("get_scene_plan"),
+        Type.Literal("generate_consistent_prompt"),
+        Type.Literal("set_rules"),
+      ], { description: "Action to perform" }),
+      projectID: Type.String({ description: "Project ID" }),
+      characterId: Type.Optional(Type.String({ description: "Character ID" })),
+      name: Type.Optional(Type.String({ description: "Character name" })),
+      type: Type.Optional(Type.Union([
+        Type.Literal("person"),
+        Type.Literal("product"),
+        Type.Literal("object"),
+        Type.Literal("animal"),
+        Type.Literal("custom"),
+      ], { description: "Character type" })),
+      description: Type.Optional(Type.String({ description: "Character description" })),
+      referenceImages: Type.Optional(Type.Array(Type.String(), { description: "Paths to reference images" })),
+      attributes: Type.Optional(Type.Any({ description: "Character attributes (appearance/clothing/colors/brand)" })),
+      sceneIndex: Type.Optional(Type.Number({ description: "Scene index (0-based)" })),
+      role: Type.Optional(Type.Union([
+        Type.Literal("primary"),
+        Type.Literal("secondary"),
+        Type.Literal("background"),
+      ], { description: "Character role in scene" })),
+      action_description: Type.Optional(Type.String({ description: "What the character is doing" })),
+      position: Type.Optional(Type.String({ description: "Position in frame" })),
+      notes: Type.Optional(Type.String({ description: "Additional notes" })),
+      basePrompt: Type.Optional(Type.String({ description: "Base prompt to enhance" })),
+      sceneCount: Type.Optional(Type.Number({ description: "Number of scenes for prompt generation" })),
+      rules: Type.Optional(Type.Any({ description: "Consistency rules" })),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, extCtx) {
+      const context = ensureContext(extCtx.cwd);
+      const tool = createSceneConsistencyTool(context);
+      const result = await tool.execute(params as Record<string, unknown>);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    },
+  });
+
+  // 26. brandly_motion_graphics — Remotion motion graphics (NEW)
+  pi.registerTool({
+    name: "brandly_motion_graphics",
+    label: "Brandly Motion Graphics",
+    description: "Create animated motion graphics using Remotion — kinetic typography, product showcases, stat counters, title reveals, and custom scene-based animations. Generates a complete Remotion project with spring physics, easing, and frame-accurate timing.",
+    promptSnippet: "Create motion graphics",
+    promptGuidelines: [
+      "Use brandly_motion_graphics for intros, stat counters, kinetic text",
+      "Pick a preset or supply custom scenes",
+    ],
+    parameters: Type.Object({
+      projectID: Type.String({ description: "The project UUID" }),
+      preset: Type.Union([
+        Type.Literal("title-reveal"),
+        Type.Literal("product-showcase"),
+        Type.Literal("kinetic-text"),
+        Type.Literal("stats-counter"),
+        Type.Literal("custom"),
+      ], { description: "Preset template. Use 'custom' to provide your own scenes." }),
+      scenes: Type.Optional(Type.Array(Type.Any({ description: "Custom scenes array (required when preset='custom')" }))),
+      fps: Type.Optional(Type.Number({ description: "Frames per second", default: 30 })),
+      width: Type.Optional(Type.Number({ description: "Output width in pixels", default: 1920 })),
+      height: Type.Optional(Type.Number({ description: "Output height in pixels", default: 1080 })),
+      outputPath: Type.Optional(Type.String({ description: "Output file path for rendered video" })),
+      autoRender: Type.Optional(Type.Boolean({ description: "Automatically render after creating the project", default: false })),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, extCtx) {
+      const context = ensureContext(extCtx.cwd);
+      const tool = createMotionGraphicsTool(context);
+      const result = await tool.execute(params as Record<string, unknown>);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    },
+  });
+
   // ============================================================
   // Register commands
   // ============================================================
   
-  pi.registerCommand({
+  (pi.registerCommand as any)({
     name: "brandly",
     description: "Brandly — AI product video orchestrator",
     isEnabled: () => true,
-    execute: async (args, signal) => {
+    execute: async (args: string, signal: AbortSignal | undefined) => {
       // Basic help output
       return `Brandly — AI Product Video Generator
 
 Tools:
-  brandly_start         Start a new video project
-  brandly_analyze_image Deep-analyze a product image
-  brandly_run_project   Run the next pipeline phase
-  brandly_approve       Approve phase & advance
-  brandly_status        Check project status
-  brandly_estimate      Estimate costs before starting
-  brandly_re_edit       Re-edit a specific shot
-  brandly_validate      Score video for virality
-  brandly_download      Download generated media
-  brandly_select_provider  Choose AI provider
-  brandly_video_edit    Edit video with Remotion
-  brandly_render_video  Render final video
+  brandly_start           Start a new video project
+  brandly_analyze_image   Deep-analyze a product image
+  brandly_run_project     Run the next pipeline phase
+  brandly_approve         Approve phase & advance
+  brandly_status          Check project status
+  brandly_estimate        Estimate costs before starting
+  brandly_re_edit         Re-edit a specific shot
+  brandly_validate        Score video for virality
+  brandly_download        Download generated media
+  brandly_select_provider Choose AI provider
+  brandly_video_edit      Edit video with Remotion
+  brandly_render_video    Render final video
+  brandly_assemble        Assemble clips into a montage (Remotion)
+  brandly_brand_kit       Create / apply brand kits
+  brandly_batch_variations  Generate A/B concept variations
+  brandly_auto_caption    Generate word-level captions (SRT)
+  brandly_scene_consistency Lock character/product refs
+  brandly_motion_graphics Create Remotion motion graphics
 
 Pipeline: init → trends → concept → script → asset → audio → validate → publish → done
 

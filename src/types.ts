@@ -34,6 +34,11 @@ export interface ProjectData {
   previewApproved?: boolean;
   reEditHistory?: ReEditEntry[];
   postGenViralityScore?: number;
+  idea?: string;
+  productName?: string;
+  duration?: number;
+  metadata?: Record<string, unknown>;
+  brandKit?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
