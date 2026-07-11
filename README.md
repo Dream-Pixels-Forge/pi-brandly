@@ -1,5 +1,6 @@
-# pi-brandly
 
+# pi-brandly
+<img width="2172" height="724" alt="pi-brandly-banner" src="https://github.com/user-attachments/assets/b92d4435-11f3-4dd9-ade8-e870ea3acad0" />
 AI product video orchestrator for [Pi](https://github.com/earendil-works/pi-coding-agent). Turns product ideas into platform-ready marketing videos using a multi-agent pipeline.
 
 ## Install
