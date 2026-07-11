@@ -72,18 +72,18 @@ export interface MotionGraphicProject {
 // ── Remotion code generation ────────────────────────────────────────────────
 
 function easingToRemotion(easing?: string): string {
+  // Remotion's interpolate() expects a function (t: number) => number.
+  // Easing.bezier() / Easing.linear() provide valid easing functions.
   switch (easing) {
     case "easeIn":
-      return "[0.4, 0, 1, 1]";
+      return "Easing.bezier(0.4, 0, 1, 1)";
     case "easeOut":
-      return "[0, 0, 0.2, 1]";
+      return "Easing.bezier(0, 0, 0.2, 1)";
     case "easeInOut":
-      return "[0.4, 0, 0.2, 1]";
-    case "spring":
-      return "spring({ config: { damping: 10, stiffness: 100 } })";
+      return "Easing.bezier(0.4, 0, 0.2, 1)";
     case "linear":
     default:
-      return "[0, 0, 1, 1]";
+      return "Easing.linear";
   }
 }
 
@@ -97,10 +97,12 @@ function generateElementAnimation(
   const dur = anim.duration ?? 0.5;
   const delay = anim.delay ?? 0;
   const isSpring = anim.easing === "spring";
-  const easingValue = isSpring
-    ? "spring({ config: { damping: 10, stiffness: 100 } })"
-    : easingToRemotion(anim.easing);
-  const easingOption = `easing: ${easingValue}, `;
+  // Remotion's interpolate() requires a function for `easing`.
+  // For spring we drive a spring over the animation window; its overshoot
+  // becomes the bounce when interpolate maps it through the output range.
+  const easingOption = isSpring
+    ? `easing: (t) => spring({ frame: t * ${dur} * fps, fps, config: { damping: 10, stiffness: 100 } }), `
+    : `easing: ${easingToRemotion(anim.easing)}, `;
 
   // Frame math helpers
   const startFrame = `(${delay} * fps)`;
@@ -232,7 +234,7 @@ function generateElementAnimation(
       return `
     // countUp ${elementVar}
     const ${elementVar}_count = Math.floor(
-       interpolate(frame, ${startFrame}, ${endFrame}, [0, ${parseInt(jsStr(el.text || "100"), 10) || 100}], { ${easingOption}extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+       interpolate(frame, ${startFrame}, ${endFrame}, [0, ${parseInt(el.text || "100", 10) || 100}], { ${easingOption}extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
     );`;
 
     case "drawLine":
@@ -255,8 +257,14 @@ function generateElementStyle(
   const parts: string[] = [];
 
   parts.push(`position: 'absolute'`);
-  parts.push(`left: '${el.x}%'`);
-  parts.push(`top: '${el.y}%'`);
+  // Slide animations override `left`/`top` with their animated value, so only
+  // emit the static position when no matching slide animation is present.
+  if (anim !== "slideInLeft" && anim !== "slideInRight") {
+    parts.push(`left: '${el.x}%'`);
+  }
+  if (anim !== "slideInTop" && anim !== "slideInBottom") {
+    parts.push(`top: '${el.y}%'`);
+  }
 
   if (el.width) parts.push(`width: '${el.width}%'`);
   if (el.height) parts.push(`height: '${el.height}%'`);
@@ -266,6 +274,7 @@ function generateElementStyle(
   if (el.fontFamily) parts.push(`fontFamily: ${jsStr(el.fontFamily)}`);
   if (el.borderRadius) parts.push(`borderRadius: ${el.borderRadius}`);
   if (el.strokeWidth) parts.push(`strokeWidth: ${el.strokeWidth}`);
+  if (el.letterSpacing) parts.push(`letterSpacing: ${el.letterSpacing}px`);
 
   // Animation-driven styles
   if (anim === "fadeIn" || anim === "fadeOut") {
@@ -451,7 +460,7 @@ function generateFullComposition(project: MotionGraphicProject): string {
     })
     .join("\n");
 
-  return `import { Composition, AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate, spring } from 'remotion';
+  return `import { Composition, AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate, spring, Easing } from 'remotion';
 
 ${sceneComponents}
 
