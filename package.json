@@ -1,0 +1,29 @@
+{
+  "name": "pi-brandly",
+  "version": "0.1.0",
+  "description": "AI product video orchestrator for Pi — turns product ideas into platform-ready marketing videos",
+  "keywords": ["pi-package"],
+  "license": "MIT",
+  "pi": {
+    "extensions": ["./src/index.ts"],
+    "skills": ["./skills"],
+    "prompts": ["./prompts"]
+  },
+  "main": "src/index.ts",
+  "files": [
+    "src/",
+    "agents/",
+    "skills/",
+    "prompts/",
+    "templates/",
+    "references/"
+  ],
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0",
+    "typebox": "^1.3.0"
+  }
+}

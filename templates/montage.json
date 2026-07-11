@@ -1,0 +1,38 @@
+{
+  "id": "montage",
+  "name": "Montage",
+  "description": "Fast-paced collection of product shots with energetic transitions",
+  "style": "montage",
+  "baseCost": 200,
+  "bestFor": ["Product showcases", "Feature highlights", "Dynamic ads"],
+  "characteristics": [
+    "Quick cuts",
+    "Multiple angles",
+    "Energetic pacing",
+    "Music-driven",
+    "Visual variety"
+  ],
+  "shotDefaults": {
+    "cameraMovement": "mixed dynamic",
+    "lighting": "bright and energetic",
+    "colorGrade": "vibrant and punchy",
+    "duration": 1.5
+  },
+  "promptModifiers": [
+    "montage style",
+    "quick cuts",
+    "dynamic angles",
+    "energetic",
+    "fast-paced",
+    "product showcase"
+  ],
+  "recommendedModels": {
+    "image": "nano_banana_2",
+    "video": "kling_3_0_turbo"
+  },
+  "platformAdjustments": {
+    "tiktok": "Vertical 9:16, fast cuts synced to music",
+    "instagram": "Square 1:1 or vertical 9:16, highlight reel style",
+    "youtube": "Horizontal 16:9, feature showcase"
+  }
+}

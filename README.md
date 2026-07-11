@@ -1,0 +1,138 @@
+# pi-brandly
+
+AI product video orchestrator for [Pi](https://github.com/earendil-works/pi-coding-agent). Turns product ideas into platform-ready marketing videos using a multi-agent pipeline.
+
+## Install
+
+```bash
+pi extension install pi-brandly
+```
+
+Or manually add to your Pi extensions:
+
+```bash
+# In your project root
+mkdir -p .pi/extensions
+cd .pi/extensions
+git clone https://github.com/Dream-Pixels-Forge/pi-brandly.git
+```
+
+## Features
+
+- **20 tools** for complete video production pipeline
+- **8 specialized agents** (trends, concept, script, asset, audio, publish, image analyzer, validation)
+- **Multi-provider support** — Higgsfield, Kling, OpenArt, Magnific, Runway, Pika
+- **Video editing** — Remotion-based trimming, concatenation, overlays, transitions
+- **Quality validation** — Higgsfield Virality Predictor integration
+- **Cost tracking** — Budget enforcement and credit monitoring
+- **Memory system** — Remember user preferences across sessions
+
+## Tools
+
+| Tool | Description |
+|---|---|
+| `brandly_start` | Start a new video project |
+| `brandly_analyze_image` | Deep-analyze any image (12 dimensions) |
+| `brandly_run_project` | Run the next pipeline phase |
+| `brandly_approve` | Approve phase & advance |
+| `brandly_status` | Check project status |
+| `brandly_estimate` | Estimate costs before starting |
+| `brandly_re_edit` | Re-edit a specific shot |
+| `brandly_validate` | Score video for virality |
+| `brandly_record_cost` | Track credit spend |
+| `brandly_save_artifact` | Save agent output |
+| `brandly_memory` | View/update preferences |
+| `brandly_templates` | List video style templates |
+| `brandly_cancel` | Pause/cancel/resume project |
+| `brandly_progress` | Get pipeline progress |
+| `brandly_export` | Export all artifacts |
+| `brandly_list_projects` | List all projects |
+| `brandly_download` | Download generated media |
+| `brandly_select_provider` | Choose AI provider |
+| `brandly_video_edit` | Edit video with Remotion |
+| `brandly_render_video` | Render final video |
+
+## Pipeline
+
+```
+init → trends → concept → script → asset → audio → validate → publish → done
+```
+
+## Quick Start
+
+```
+"Make a product video for MatchaQuick — organic matcha that froths instantly"
+```
+
+Pi will:
+1. Start a project with `brandly_start`
+2. Analyze any product images
+3. Research viral trends
+4. Generate 3 video concepts
+5. Create shot-by-shot scripts
+6. Generate images and videos
+7. Add audio (music, voiceover)
+8. Validate for virality
+9. Prepare publishing assets
+
+## Folder Structure
+
+```
+.pi/brandly/
+  projects/{id}/         Project state, artifacts, history
+    analysis/            Image analysis, trends
+    script/              Concept, shot-by-shot script
+    storyboard/          Visual storyboard
+    assets/              Asset generation plan
+    audio/               Audio plan
+  user-preferences.json  Your liked hooks, preferred style
+
+imagen/{id}/             Generated images
+videgen/{id}/            Generated videos
+audgen/{id}/             Generated audio
+```
+
+## MCP Dependencies
+
+Brandly agents use these MCP tools:
+
+- `higgsfield_generate_image` — Image generation
+- `higgsfield_generate_video` — Video generation
+- `higgsfield_upscale_video` — Video upscaling
+- `higgsfield_virality_predictor` — Virality scoring
+- `magnific_audio_music_generate` — Music generation
+- `magnific_audio_tts` — Voiceover generation
+
+## Video Styles
+
+| Style | Cost | Best For |
+|---|---|---|
+| Cinematic | 250 cr | Premium products, brand campaigns |
+| UGC | 150 cr | Social media, testimonials |
+| Montage | 200 cr | Product showcases, feature highlights |
+| Multi-Shot | 300 cr | Storytelling, tutorials |
+| Continuous | 200 cr | Satisfying content, ASMR |
+| Unboxing | 180 cr | New products, reveals |
+| Lifestyle | 170 cr | Consumer products, fashion |
+
+## Providers
+
+| Provider | Type | Best For |
+|---|---|---|
+| Higgsfield AI | Multi | Comprehensive platform |
+| Kling AI | Video | Strong motion, budget-friendly |
+| OpenArt | Image | Community models |
+| Magnific AI | Upscale | Image enhancement, audio |
+| Runway ML | Video | Professional cinematic |
+| Pika Labs | Video | Creative stylized |
+
+## Development
+
+```bash
+bun install
+bun build src/index.ts --outdir dist --target bun
+```
+
+## License
+
+MIT

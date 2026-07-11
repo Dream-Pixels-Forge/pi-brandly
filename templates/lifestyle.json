@@ -1,0 +1,38 @@
+{
+  "id": "lifestyle",
+  "name": "Lifestyle",
+  "description": "Product integrated into everyday life scenarios",
+  "style": "lifestyle",
+  "baseCost": 170,
+  "bestFor": ["Consumer products", "Fashion", "Food & beverage"],
+  "characteristics": [
+    "Real-world settings",
+    "Daily routines",
+    "Relatable scenarios",
+    "Warm tones",
+    "Natural interactions"
+  ],
+  "shotDefaults": {
+    "cameraMovement": "gentle handheld",
+    "lighting": "natural golden hour",
+    "colorGrade": "warm and inviting",
+    "duration": 3
+  },
+  "promptModifiers": [
+    "lifestyle photography",
+    "everyday life",
+    "real world setting",
+    "natural interactions",
+    "warm tones",
+    "relatable"
+  ],
+  "recommendedModels": {
+    "image": "soul_2_0",
+    "video": "kling_3_0"
+  },
+  "platformAdjustments": {
+    "tiktok": "Vertical 9:16, authentic daily life",
+    "instagram": "Square 1:1 or vertical 9:16, aspirational lifestyle",
+    "youtube": "Horizontal 16:9, day-in-the-life feel"
+  }
+}

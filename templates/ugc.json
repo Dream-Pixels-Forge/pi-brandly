@@ -1,0 +1,39 @@
+{
+  "id": "ugc",
+  "name": "UGC (User Generated Content)",
+  "description": "Authentic, raw-feeling content that looks like a real user testimonial",
+  "style": "ugc",
+  "baseCost": 150,
+  "bestFor": ["Social media", "Testimonials", "Authentic marketing"],
+  "characteristics": [
+    "Handheld feel",
+    "Natural lighting",
+    "Casual tone",
+    "Direct-to-camera",
+    "Quick cuts"
+  ],
+  "shotDefaults": {
+    "cameraMovement": "handheld slight shake",
+    "lighting": "natural window light",
+    "colorGrade": "no color grade, natural",
+    "duration": 2
+  },
+  "promptModifiers": [
+    "UGC style",
+    "user generated content",
+    "handheld camera",
+    "natural lighting",
+    "authentic",
+    "casual",
+    "real person"
+  ],
+  "recommendedModels": {
+    "image": "nano_banana_2",
+    "video": "kling_3_0"
+  },
+  "platformAdjustments": {
+    "tiktok": "Vertical 9:16, raw and authentic",
+    "instagram": "Vertical 9:16 for Reels, natural aesthetic",
+    "youtube": "Vertical 9:16 for Shorts, casual feel"
+  }
+}

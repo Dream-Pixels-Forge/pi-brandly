@@ -1,0 +1,37 @@
+{
+  "id": "continuous",
+  "name": "Continuous",
+  "description": "Seamless single-take feel with flowing transitions",
+  "style": "continuous",
+  "baseCost": 200,
+  "bestFor": ["Satisfying content", "ASMR", "Product reveals"],
+  "characteristics": [
+    "Single-take feel",
+    "Smooth transitions",
+    "Continuous motion",
+    "Satisfying flow"
+  ],
+  "shotDefaults": {
+    "cameraMovement": "smooth tracking",
+    "lighting": "soft and consistent",
+    "colorGrade": "clean and polished",
+    "duration": 5
+  },
+  "promptModifiers": [
+    "continuous take",
+    "single shot",
+    "smooth camera movement",
+    "flowing",
+    "seamless",
+    "satisfying"
+  ],
+  "recommendedModels": {
+    "image": "nano_banana_pro",
+    "video": "seedance_2_0"
+  },
+  "platformAdjustments": {
+    "tiktok": "Vertical 9:16, maintain flow",
+    "instagram": "Vertical 9:16, smooth Reels",
+    "youtube": "Horizontal 16:9, cinematic flow"
+  }
+}

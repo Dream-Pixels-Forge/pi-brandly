@@ -1,0 +1,38 @@
+{
+  "id": "cinematic",
+  "name": "Cinematic",
+  "description": "Film-quality product showcase with dramatic lighting and smooth camera movements",
+  "style": "cinematic",
+  "baseCost": 250,
+  "bestFor": ["Premium products", "Brand campaigns", "High-end launches"],
+  "characteristics": [
+    "Smooth camera movements",
+    "Dramatic lighting",
+    "Film grain",
+    "Shallow depth of field",
+    "Color grading"
+  ],
+  "shotDefaults": {
+    "cameraMovement": "slow dolly in",
+    "lighting": "dramatic chiaroscuro",
+    "colorGrade": "warm cinematic tones",
+    "duration": 3
+  },
+  "promptModifiers": [
+    "cinematic film quality",
+    "35mm anamorphic lens",
+    "dramatic lighting",
+    "shallow depth of field",
+    "film grain",
+    "color graded"
+  ],
+  "recommendedModels": {
+    "image": "soul_cinema",
+    "video": "seedance_2_0"
+  },
+  "platformAdjustments": {
+    "tiktok": "Vertical 9:16, maintain cinematic quality",
+    "instagram": "Square 1:1 or vertical 9:16, crop for center focus",
+    "youtube": "Horizontal 16:9, full cinematic framing"
+  }
+}

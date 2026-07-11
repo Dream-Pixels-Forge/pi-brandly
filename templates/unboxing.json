@@ -1,0 +1,38 @@
+{
+  "id": "unboxing",
+  "name": "Unboxing",
+  "description": "Product reveal with anticipation building and first impressions",
+  "style": "unboxing",
+  "baseCost": 180,
+  "bestFor": ["New products", "Gifts", "Tech gadgets"],
+  "characteristics": [
+    "Anticipation building",
+    "Reveal moments",
+    "Detail close-ups",
+    "First reactions",
+    "Packaging focus"
+  ],
+  "shotDefaults": {
+    "cameraMovement": "push in for reveals",
+    "lighting": "bright and clean",
+    "colorGrade": "fresh and inviting",
+    "duration": 3
+  },
+  "promptModifiers": [
+    "unboxing style",
+    "product reveal",
+    "first look",
+    "anticipation",
+    "close-up details",
+    "clean aesthetic"
+  ],
+  "recommendedModels": {
+    "image": "nano_banana_2",
+    "video": "kling_3_0"
+  },
+  "platformAdjustments": {
+    "tiktok": "Vertical 9:16, focus on reveal moments",
+    "instagram": "Vertical 9:16, aesthetic unboxing",
+    "youtube": "Horizontal 16:9, detailed walkthrough"
+  }
+}

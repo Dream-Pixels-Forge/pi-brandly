@@ -1,0 +1,36 @@
+{
+  "id": "multi_shot",
+  "name": "Multi-Shot",
+  "description": "Structured narrative with distinct scenes and story progression",
+  "style": "multi_shot",
+  "baseCost": 300,
+  "bestFor": ["Storytelling", "Tutorials", "Complex products"],
+  "characteristics": [
+    "Scene-based structure",
+    "Narrative arc",
+    "Multiple setups",
+    "Clear progression",
+    "Dialogue support"
+  ],
+  "shotDefaults": {
+    "cameraMovement": "varied per scene",
+    "lighting": "scene-appropriate",
+    "colorGrade": "consistent throughout",
+    "duration": 4
+  },
+  "promptModifiers": [
+    "multi-shot narrative",
+    "story structure",
+    "scene progression",
+    "cinematic storytelling"
+  ],
+  "recommendedModels": {
+    "image": "soul_2_0",
+    "video": "seedance_2_0"
+  },
+  "platformAdjustments": {
+    "tiktok": "Vertical 9:16, condense to 3-4 key scenes",
+    "instagram": "Vertical 9:16, maintain story arc",
+    "youtube": "Horizontal 16:9, full narrative"
+  }
+}

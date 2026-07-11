@@ -1,0 +1,12 @@
+# Pi project data
+.pi/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+*.log
+.DS_Store
