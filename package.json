@@ -2,12 +2,22 @@
   "name": "pi-brandly",
   "version": "0.1.0",
   "description": "AI product video orchestrator for Pi — turns product ideas into platform-ready marketing videos",
-  "keywords": ["pi-package"],
+  "keywords": ["pi-package", "video", "marketing", "ai", "higgsfield"],
   "license": "MIT",
+  "author": "Dream Pixels Forge",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Dream-Pixels-Forge/pi-brandly.git"
+  },
+  "homepage": "https://github.com/Dream-Pixels-Forge/pi-brandly#readme",
+  "bugs": {
+    "url": "https://github.com/Dream-Pixels-Forge/pi-brandly/issues"
+  },
   "pi": {
     "extensions": ["./src/index.ts"],
     "skills": ["./skills"],
-    "prompts": ["./prompts"]
+    "prompts": ["./prompts"],
+    "image": "https://github.com/user-attachments/assets/placeholder.png"
   },
   "main": "src/index.ts",
   "files": [
@@ -18,12 +28,13 @@
     "templates/",
     "references/"
   ],
-  "dependencies": {
-    "@earendil-works/pi-coding-agent": "*"
+  "dependencies": {},
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "typescript": "^5.8.0",
-    "typebox": "^1.3.0"
+    "typescript": "^5.8.0"
   }
 }
