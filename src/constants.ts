@@ -117,4 +117,4 @@ export type VideoFormat = "mp4" | "webm" | "gif";
 /**
  * Provider IDs
  */
-export type ProviderId = "higgsfield" | "kling" | "openart" | "magnific" | "runway" | "pika";
+export type ProviderId = "higgsfield" | "kling" | "openart" | "magnific" | "runway" | "pika" | "matrix";

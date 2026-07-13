@@ -42,6 +42,7 @@ import { createBatchVariationsTool } from "./tools/batch-variations.js";
 import { createAutoCaptionTool } from "./tools/auto-caption.js";
 import { createSceneConsistencyTool } from "./tools/scene-consistency.js";
 import { createMotionGraphicsTool } from "./tools/motion-graphics.js";
+import { createMatrixTool } from "./tools/matrix.js";
 
 /**
  * Extension directory (for bundled agents, skills, templates)
@@ -545,7 +546,7 @@ export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "brandly_select_provider",
     label: "Brandly Select Provider",
-    description: "Select an AI generation provider (Higgsfield, Kling, OpenArt, Magnific, Runway, Pika) or list available providers.",
+    description: "Select an AI generation provider (Higgsfield, Kling, OpenArt, Magnific, Runway, Pika, Matrix) or list available providers.",
     promptSnippet: "Select AI generation provider",
     promptGuidelines: [
       "Use brandly_select_provider to choose or list AI generation providers",
@@ -560,6 +561,7 @@ export default function (pi: ExtensionAPI) {
         Type.Literal("magnific"),
         Type.Literal("runway"),
         Type.Literal("pika"),
+        Type.Literal("matrix"),
       ], { description: "Provider to select" })),
       listOnly: Type.Optional(Type.Boolean({
         description: "Only list providers, don't select one",
@@ -569,6 +571,35 @@ export default function (pi: ExtensionAPI) {
     async execute(toolCallId, params, signal, onUpdate, extCtx) {
       const context = ensureContext(extCtx.cwd);
       const tool = createProviderTool(context);
+      const result = await tool.execute(params as Record<string, unknown>);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    },
+  });
+
+  // 18b. brandly_matrix — MiniMax Matrix (image understanding / image / video)
+  pi.registerTool({
+    name: "brandly_matrix",
+    label: "Brandly Matrix (MiniMax)",
+    description: "MiniMax Matrix: analyze images (understanding/OCR), generate images, or generate video. Credentials read from Pi's provider config (~/.pi/agent/auth.json -> minimax).",
+    promptSnippet: "Use MiniMax Matrix for image analysis or generation",
+    promptGuidelines: [
+      "Use brandly_matrix action=analyze to understand/describe/OCR an image",
+      "Use brandly_matrix action=image or video to generate with MiniMax",
+    ],
+    parameters: Type.Object({
+      action: Type.String({ enum: ["analyze", "image", "video"], description: "analyze=image understanding, image=image gen, video=video gen" }),
+      imagePath: Type.Optional(Type.String({ description: "Local path or URL to the image" })),
+      prompt: Type.Optional(Type.String({ description: "Question (analyze) or generation description (image/video)" })),
+      model: Type.Optional(Type.String({ description: "MiniMax model (default MiniMax-M3 / image-01 / video-01)" })),
+      projectID: Type.Optional(Type.String({ description: "Optional Brandly project to attach to" })),
+      aspectRatio: Type.Optional(Type.String({ description: "Image aspect ratio, e.g. 9:16, 16:9, 1:1" })),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, extCtx) {
+      const context = ensureContext(extCtx.cwd);
+      const tool = createMatrixTool(context);
       const result = await tool.execute(params as Record<string, unknown>);
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],

@@ -4,6 +4,7 @@
 
 import type { ToolContext, ProjectData } from "./context.js";
 import { isValidProjectId } from "../constants.js";
+import { hasMinimaxCreds, analyzeImageWithMinimax } from "./matrix-client.js";
 
 export function createAnalyzeImageTool(ctx: ToolContext) {
   return {
@@ -36,8 +37,8 @@ export function createAnalyzeImageTool(ctx: ToolContext) {
         }
       }
 
-      // Return analysis instructions for the image_analyzer agent
-      return {
+      // Primary: native model analysis (agent reads the image if it has vision)
+      const result: Record<string, unknown> = {
         imagePath,
         context,
         projectID,
@@ -63,6 +64,28 @@ export function createAnalyzeImageTool(ctx: ToolContext) {
           subagentType: "general",
         },
       };
+
+      // Fallback: if the model can't see images, use MiniMax Matrix (configured in
+      // Pi's provider config). Guarantees a real analysis regardless of model vision.
+      if (imagePath) {
+        try {
+          if (await hasMinimaxCreds()) {
+            const { analysis, raw } = await analyzeImageWithMinimax(
+              imagePath,
+              `Analyze the image at ${imagePath}. ${context ? `Context: ${context}. ` : ""}Provide detailed analysis across all 12 dimensions: subject, product details, color palette (hex), lighting, composition, style, emotion, text/branding, background, technical quality, platform suitability, creative direction.`
+            );
+            result.minimaxAnalysis = analysis;
+            result.minimaxRaw = raw;
+            result.minimaxUsed = true;
+            result.status = "analysis_complete";
+            result.message = "Analysis complete via MiniMax Matrix fallback (native model vision unavailable or skipped).";
+          }
+        } catch (e) {
+          result.minimaxError = e instanceof Error ? e.message : String(e);
+        }
+      }
+
+      return result;
     },
   };
 }

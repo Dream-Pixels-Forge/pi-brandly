@@ -92,6 +92,19 @@ const PROVIDERS: ProviderInfo[] = [
     ],
     website: "https://pika.art",
   },
+  {
+    id: "matrix",
+    name: "MiniMax Matrix",
+    type: "multi",
+    capabilities: ["image", "video", "audio", "image_understanding", "video_understanding", "web_search"],
+    models: ["MiniMax-M3 (vision LLM)", "image_generation", "video_generation", "text_to_speech"],
+    bestFor: [
+      "Image understanding, analysis, and OCR",
+      "Image-to-video and text-to-video generation",
+      "Web-search-augmented generation",
+    ],
+    website: "https://agent.minimax.io",
+  },
 ];
 
 export function createProviderTool(ctx: ToolContext) {
@@ -104,7 +117,7 @@ export function createProviderTool(ctx: ToolContext) {
         projectID: { type: "string", description: "Project to set provider for" },
         providerId: {
           type: "string",
-          enum: ["higgsfield", "kling", "openart", "magnific", "runway", "pika"],
+          enum: ["higgsfield", "kling", "openart", "magnific", "runway", "pika", "matrix"],
           description: "Provider to select",
         },
         listOnly: {
