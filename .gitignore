@@ -2,10 +2,11 @@
 .pi/
 
 # Generated media (clips, assemblies, renders)
+# NOTE: assembly/ is intentionally tracked as a worked example (see
+# assembly/<projectID>/director/ — a complete, renderable Remotion project).
 imagen/
 videgen/
 audgen/
-assembly/
 consistency/
 
 # Dependencies
