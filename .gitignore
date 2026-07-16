@@ -1,6 +1,13 @@
 # Pi project data
 .pi/
 
+# Generated media (clips, assemblies, renders)
+imagen/
+videgen/
+audgen/
+assembly/
+consistency/
+
 # Dependencies
 node_modules/
 bun.lock

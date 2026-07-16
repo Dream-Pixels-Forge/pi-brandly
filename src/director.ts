@@ -479,8 +479,8 @@ function generateDirectorComposition(
   opts: { fps: number; width: number; height: number; transition: string; transitionDuration: number; bgMusic?: string }
 ): string {
   const { fps, width, height, transition, transitionDuration } = opts;
-  const clipImports = clips.map((c, i) => `import Clip_${i} from "./assets/${c.fileName}";`).join("\n");
-  const bgImport = opts.bgMusic ? `import BgMusic from "./assets/${opts.bgMusic}";` : "";
+  const clipImports = clips.map((c, i) => `import Clip_${i} from "../assets/${c.fileName}";`).join("\n");
+  const bgImport = opts.bgMusic ? `import BgMusic from "../assets/${opts.bgMusic}";` : "";
 
   let cursor = 0;
   const sequenceBlocks = clips
@@ -488,15 +488,11 @@ function generateDirectorComposition(
       const frameStart = cursor;
       const durationFrames = Math.max(1, Math.round(c.durationSec * fps));
       cursor += durationFrames;
-      const transitionHint =
-        transition === "fade"
-          ? `style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 1 }}`
-          : `style={{ width: "100%", height: "100%", objectFit: "cover" }}`;
       const titleBlock = c.title
         ? `<div style={{ position: "absolute", bottom: "8%", left: "50%", transform: "translateX(-50%)", color: "white", fontSize: 42, fontWeight: "bold", textShadow: "2px 2px 8px rgba(0,0,0,0.7)", fontFamily: "Arial, sans-serif", background: "rgba(0,0,0,0.35)", padding: "6px 20px", borderRadius: 8 }}>${c.title}</div>`
         : "";
       return `      <Sequence from={${frameStart}} durationInFrames={${durationFrames}}>
-        <Clip_${i} ${transitionHint} />
+        <Video src={Clip_${i}} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ${titleBlock}
       </Sequence>`;
     })
@@ -505,7 +501,7 @@ function generateDirectorComposition(
   const totalFrames = cursor;
   const bgAudio = opts.bgMusic ? `      <Audio src={BgMusic} volume={0.8} />` : "";
 
-  return `import { Composition, Sequence, Audio } from "remotion";
+  return `import { Composition, Sequence, Audio, Video } from "remotion";
 ${clipImports}
 ${bgImport}
 
@@ -549,6 +545,28 @@ Config.setOverwriteOutput(true);
 `;
 }
 
+function generateTsConfig(): string {
+  return JSON.stringify(
+    {
+      compilerOptions: {
+        target: "ES2018",
+        module: "ESNext",
+        moduleResolution: "Bundler",
+        jsx: "react-jsx",
+        strict: true,
+        esModuleInterop: true,
+        skipLibCheck: true,
+        forceConsistentCasingInFileNames: true,
+        lib: ["DOM", "ES2018"],
+        noEmit: true,
+      },
+      include: ["src"],
+    },
+    null,
+    2
+  );
+}
+
 function generatePackageJson(projectName: string): string {
   return JSON.stringify(
     {
@@ -575,13 +593,13 @@ function generatePackageJson(projectName: string): string {
   );
 }
 
-function generateBuildScript(assemblyDir: string, outputPath: string): string {
+function generateBuildScript(assemblyDir: string, outputPath: string, compositionId: string): string {
   return `#!/bin/bash
 # Brandly Director's Cut — Assembly Build
 set -e
 echo "🎬 Assembling Director's cut: ${assemblyDir}"
 [ ! -d node_modules ] && npm install
-npx remotion render src/index.ts DirectorCut "${outputPath}" --codec h264
+npx remotion render src/index.ts ${compositionId} "${outputPath}" --codec h264
 echo "✅ Delivered: ${outputPath}"
 `;
 }
@@ -654,11 +672,13 @@ async function assembleProduction(
   await writeFile(join(srcDir, "Composition.tsx"), compositionCode, "utf-8");
   await writeFile(join(srcDir, "index.ts"), generateRootIndex(projectName), "utf-8");
   await writeFile(join(assemblyDir, "remotion.config.ts"), generateRemotionConfig(), "utf-8");
+  await writeFile(join(assemblyDir, "tsconfig.json"), generateTsConfig(), "utf-8");
   await writeFile(join(assemblyDir, "package.json"), generatePackageJson(projectName), "utf-8");
 
   const outputPath =
     opts.outputPath || join(outDir, `${projectName.toLowerCase().replace(/\s+/g, "-")}-director-cut.mp4`);
-  await writeFile(join(assemblyDir, "build.sh"), generateBuildScript(assemblyDir, outputPath), "utf-8");
+  const compositionId = projectName.replace(/[^a-zA-Z0-9]/g, "");
+  await writeFile(join(assemblyDir, "build.sh"), generateBuildScript(assemblyDir, outputPath, compositionId), "utf-8");
 
   plan.assembly = {
     order: clips.map((c) => c.shotId),
