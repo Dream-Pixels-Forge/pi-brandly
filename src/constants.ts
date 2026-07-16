@@ -88,6 +88,8 @@ export const USER_PREFS_FILE = "user-preferences.json";
 export const IMAGEN_DIR = "imagen";
 export const VIDEOGEN_DIR = "videgen";
 export const AUDGEN_DIR = "audgen";
+export const CONSISTENCY_DIR = "consistency";
+export const ASSEMBLY_DIR = "assembly";
 
 /**
  * Directory names from Pi's config (for reference)

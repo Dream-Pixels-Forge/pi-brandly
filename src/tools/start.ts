@@ -7,7 +7,7 @@ import { mkdir, copyFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import type { ProjectData } from "../types";
 import type { VideoStyle } from "../constants";
-import { generateProjectId, VIDEO_STYLES } from "../constants";
+import { generateProjectId, VIDEO_STYLES, IMAGEN_DIR, VIDEOGEN_DIR, AUDGEN_DIR, CONSISTENCY_DIR, ASSEMBLY_DIR } from "../constants";
 import type { ToolContext } from "./context.js";
 
 export function createStartTool(ctx: ToolContext) {
@@ -91,6 +91,14 @@ export function createStartTool(ctx: ToolContext) {
 
       await ctx.writeProject(projectId, project);
 
+      // Create workspace-root media directories for this project (only on init).
+      // These hold generated assets and are namespaced per project id.
+      const mediaRoots = [IMAGEN_DIR, VIDEOGEN_DIR, AUDGEN_DIR, CONSISTENCY_DIR, ASSEMBLY_DIR];
+      for (const root of mediaRoots) {
+        await mkdir(join(ctx.directory, root), { recursive: true });
+        await mkdir(join(ctx.directory, root, projectId), { recursive: true });
+      }
+
       // Copy product image if provided
       if (imagePath) {
         await mkdir(dirs.imagen, { recursive: true });
@@ -113,6 +121,8 @@ export function createStartTool(ctx: ToolContext) {
           imagen: dirs.imagen,
           videgen: dirs.videgen,
           audgen: dirs.audgen,
+          consistency: join(ctx.directory, CONSISTENCY_DIR, projectId),
+          assembly: join(ctx.directory, ASSEMBLY_DIR, projectId),
         },
       };
     },
