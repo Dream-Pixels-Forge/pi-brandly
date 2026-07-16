@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Dream-Pixels-Forge/pi-brandly/references/shots-schema.json",
+  "title": "Brandly Director shots[] input",
+  "description": "Canonical script format consumed by brandly_director(action=\"init\", scriptJson=...). This is exactly the JSON the script_agent emits, so its output feeds the Director directly.",
+  "type": "object",
+  "required": ["shots"],
+  "additionalProperties": true,
+  "properties": {
+    "shots": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "description": "Ordered list of shots. Order defines final assembly order and continuity chaining (shot N inherits continuity from shot N-1).",
+      "items": {
+        "type": "object",
+        "required": ["description", "prompt"],
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": ["integer", "string"],
+            "description": "Shot number/identifier. Used only for display; the Director re-indexes as shot-1, shot-2, ..."
+          },
+          "title": {
+            "type": "string",
+            "description": "Short shot name (e.g. 'Hook', 'Reveal'). Shown as a lower-third when showTitles=true."
+          },
+          "description": {
+            "type": "string",
+            "description": "What happens in the shot. Be concrete."
+          },
+          "subject": {
+            "type": "string",
+            "description": "Who/what is the focus (age, clothing, features). Feeds the generation prompt."
+          },
+          "environment": {
+            "type": "string",
+            "description": "Background / setting for the shot."
+          },
+          "prompt": {
+            "type": "string",
+            "description": "Optimized AI-video generation prompt (8-Layer Framework). Keep under ~2400 chars."
+          },
+          "negativePrompt": {
+            "type": "string",
+            "description": "Negative prompt for common AI artifacts (blurry, distorted, text overlay)."
+          },
+          "model": {
+            "type": "string",
+            "description": "Suggested generation model, e.g. kling3_0, hailuo_2_3, seedance_2_0."
+          },
+          "cameraMovement": {
+            "type": "string",
+            "description": "Camera move, e.g. 'slow dolly in', 'orbit', 'aerial pull away'."
+          },
+          "lighting": {
+            "type": "string",
+            "description": "Lighting setup, e.g. 'golden hour backlight'."
+          },
+          "duration": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 30,
+            "description": "Shot duration in seconds (1-5 recommended)."
+          },
+          "aspectRatio": {
+            "type": "string",
+            "pattern": "^\\d+:\\d+$",
+            "description": "Optional aspect ratio, e.g. '9:16'. Defaults to 9:16 for social."
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "shots": [
+        {
+          "id": 1,
+          "title": "Hook",
+          "description": "Product slams onto a marble counter",
+          "subject": "MatchaQuick can",
+          "environment": "Minimalist kitchen counter",
+          "prompt": "MatchaQuick can slams onto marble, golden hour backlight, slow dolly in, cinematic",
+          "negativePrompt": "blurry, distorted, text overlay",
+          "model": "kling3_0",
+          "cameraMovement": "slow dolly in",
+          "lighting": "golden hour backlight",
+          "duration": 3,
+          "aspectRatio": "9:16"
+        },
+        {
+          "id": 2,
+          "title": "Reveal",
+          "description": "Liquid pours in slow motion",
+          "subject": "Matcha liquid",
+          "environment": "Same counter",
+          "prompt": "Matcha liquid pours in ultra slow-mo, continuity with prior shot, soft studio key",
+          "negativePrompt": "blurry, distorted",
+          "model": "seedance_2_0",
+          "cameraMovement": "push in",
+          "lighting": "soft studio key",
+          "duration": 4
+        }
+      ]
+    }
+  ]
+}

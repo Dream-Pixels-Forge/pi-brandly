@@ -361,6 +361,23 @@ pi.registerTool({
 - [ ] Generate thumbnails per platform
 - [ ] Create complete publishing checklists
 
+#### 8.5 Superproduction Director (IMPLEMENTED)
+- [x] `brandly_director` tool — multi-shot orchestration state machine
+- [x] `init` — parse a multi-shot script (markdown / shot tables / `shots[]` JSON) into an ordered production plan (`production.json`)
+- [x] `next` — dispatch ONE shot at a time with a full brief + `continuityClip` reference
+- [x] `complete` / `rework` — track per-shot status, clip path, and credits
+- [x] `assemble` — cut all `done` shots into ONE ordered Remotion film (Director's cut)
+- [x] `deliver` — run virality validation + export the package
+- [x] `pause` / `resume` / `status` / `plan` — production control
+- [x] `agents/director_agent.md` persona + `prompts/director.md` template
+- `src/director.ts` owns the orchestration loop; reuses `createValidateTool` / `createExportTool`
+
+#### 8.6 Auto Identity-Lock at init (IMPLEMENTED)
+- [x] At `action="init"`, the Director auto-creates `brandly_scene_consistency` references for every unique subject/product in the script (type inferred: person/product/object), assigns each shot (scene) to its character, and sets strict lock rules
+- [x] Each `next` brief includes a `0. LOCK IDENTITY` step calling `generate_consistent_prompt` so the product/character stays identical shot-to-shot
+- [x] State stored in `consistency/{projectID}/plan.json`; surfaced on the production board (🔒 Identity locked)
+- [x] Best-effort (never blocks init); opt-out via `lockConsistency=false`
+
 ---
 
 ### Phase 9: Testing & Polish (Estimated: ~1.5 hours)

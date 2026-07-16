@@ -43,6 +43,7 @@ import { createAutoCaptionTool } from "./tools/auto-caption.js";
 import { createSceneConsistencyTool } from "./tools/scene-consistency.js";
 import { createMotionGraphicsTool } from "./tools/motion-graphics.js";
 import { createMatrixTool } from "./tools/matrix.js";
+import { createDirectorTool } from "./director.js";
 
 /**
  * Extension directory (for bundled agents, skills, templates)
@@ -929,44 +930,131 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
+  // 27. brandly_director — Superproduction Director (NEW)
+  pi.registerTool({
+    name: "brandly_director",
+    label: "Brandly Director",
+    description: "Superproduction Director — orchestrates a multi-shot script into one final film. Plan the production, dispatch shot-by-shot creation, track each shot, then assemble all shots and deliver.",
+    promptSnippet: "Orchestrate a multi-shot superproduction",
+    promptGuidelines: [
+      "Use brandly_director when the user provides a script with MULTIPLE shots and wants them produced and assembled into one video",
+      "Loop: init (from script) → next (get shot brief) → generate shot → complete (record clip) → repeat → assemble → deliver",
+      "The Director tracks per-shot state in .pi/brandly/projects/{id}/production.json",
+    ],
+    parameters: Type.Object({
+      action: Type.Union([
+        Type.Literal("init"),
+        Type.Literal("plan"),
+        Type.Literal("next"),
+        Type.Literal("complete"),
+        Type.Literal("rework"),
+        Type.Literal("status"),
+        Type.Literal("assemble"),
+        Type.Literal("deliver"),
+        Type.Literal("pause"),
+        Type.Literal("resume"),
+      ], { description: "Director action" }),
+      projectID: Type.String({ description: "The project UUID" }),
+      scriptJson: Type.Optional(
+        Type.Object(
+          {
+            shots: Type.Array(
+              Type.Object({
+                id: Type.Optional(Type.Union([Type.Number(), Type.String()])),
+                title: Type.Optional(Type.String()),
+                description: Type.String(),
+                subject: Type.Optional(Type.String()),
+                environment: Type.Optional(Type.String()),
+                prompt: Type.String(),
+                negativePrompt: Type.Optional(Type.String()),
+                model: Type.Optional(Type.String()),
+                cameraMovement: Type.Optional(Type.String()),
+                lighting: Type.Optional(Type.String()),
+                duration: Type.Optional(Type.Number()),
+                aspectRatio: Type.Optional(Type.String()),
+              })
+            ),
+          },
+          {
+            description:
+              "Canonical shots[] schema. The script_agent output (shots: [...]) feeds in directly: { shots: [ { id, description, subject?, environment?, prompt, negativePrompt?, model?, cameraMovement?, lighting?, duration?, aspectRatio? } ] }",
+          }
+        )
+      ),
+      scriptText: Type.Optional(Type.String({ description: "Raw multi-shot script text to parse" })),
+      lockConsistency: Type.Optional(
+        Type.Boolean({ description: "Auto-lock character/product references at init via brandly_scene_consistency (keeps the film visually coherent shot-to-shot)", default: true })
+      ),
+      style: Type.Optional(Type.String({ description: "Video style (cinematic, ugc, montage, ...)" })),
+      shotId: Type.Optional(Type.String({ description: "Shot ID for complete/rework (e.g., 'shot-1')" })),
+      clipPath: Type.Optional(Type.String({ description: "Path to the finished clip for this shot" })),
+      credits: Type.Optional(Type.Number({ description: "Credits spent generating this shot" })),
+      newPrompt: Type.Optional(Type.String({ description: "New prompt when marking a shot for rework" })),
+      notes: Type.Optional(Type.String({ description: "Optional notes" })),
+      assemblyStyle: Type.Optional(Type.String({ description: "Assembly style preset" })),
+      transitionType: Type.Optional(Type.Union([
+        Type.Literal("fade"),
+        Type.Literal("slide"),
+        Type.Literal("wipe"),
+        Type.Literal("none"),
+      ], { default: "fade", description: "Transition type between shots" })),
+      transitionDuration: Type.Optional(Type.Number({ description: "Transition duration in seconds", default: 0.5 })),
+      fps: Type.Optional(Type.Number({ description: "Frames per second", default: 30 })),
+      width: Type.Optional(Type.Number({ description: "Output width in pixels", default: 1080 })),
+      height: Type.Optional(Type.Number({ description: "Output height in pixels", default: 1920 })),
+      showTitles: Type.Optional(Type.Boolean({ description: "Show per-shot title lower-thirds", default: false })),
+      backgroundMusicPath: Type.Optional(Type.String({ description: "Optional background music file" })),
+      outputPath: Type.Optional(Type.String({ description: "Output path for assembled/delivered video" })),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, extCtx) {
+      const context = ensureContext(extCtx.cwd);
+      const tool = createDirectorTool(context);
+      const result = await tool.execute(params as Record<string, unknown>);
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    },
+  });
+
   // ============================================================
-  // Register commands
+  // Register the /brandly_director slash-command shortcut
   // ============================================================
-  
+
   (pi.registerCommand as any)({
-    name: "brandly",
-    description: "Brandly — AI product video orchestrator",
+    name: "brandly_director",
+    description: "Superproduction Director — orchestrate a multi-shot script into one final film",
     isEnabled: () => true,
-    execute: async (args: string, signal: AbortSignal | undefined) => {
-      // Basic help output
-      return `Brandly — AI Product Video Generator
+    execute: async (args: string) => {
+      const tokens = (args || "").trim().split(/\s+/).filter(Boolean);
+      const projectID = tokens.find((t) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(t));
+      const sub = tokens.find((t) => !/^[0-9a-f-]{36}$/i.test(t)) || "help";
+      const id = projectID ? `projectID="${projectID}"` : "<projectID>";
 
-Tools:
-  brandly_start           Start a new video project
-  brandly_analyze_image   Deep-analyze a product image
-  brandly_run_project     Run the next pipeline phase
-  brandly_approve         Approve phase & advance
-  brandly_status          Check project status
-  brandly_estimate        Estimate costs before starting
-  brandly_re_edit         Re-edit a specific shot
-  brandly_validate        Score video for virality
-  brandly_download        Download generated media
-  brandly_select_provider Choose AI provider
-  brandly_video_edit      Edit video with Remotion
-  brandly_render_video    Render final video
-  brandly_assemble        Assemble clips into a montage (Remotion)
-  brandly_brand_kit       Create / apply brand kits
-  brandly_batch_variations  Generate A/B concept variations
-  brandly_auto_caption    Generate word-level captions (SRT)
-  brandly_scene_consistency Lock character/product refs
-  brandly_motion_graphics Create Remotion motion graphics
+      const calls: Record<string, string> = {
+        init: `brandly_director(action="init", ${id}, scriptText="<paste the multi-shot script, or attach a script.md>")  # or scriptJson={shots:[...]}`,
+        next: `brandly_director(action="next", ${id})`,
+        status: `brandly_director(action="status", ${id})`,
+        assemble: `brandly_director(action="assemble", ${id}, transitionType="fade")  # then: cd <assemblyDir> && bash build.sh`,
+        deliver: `brandly_director(action="deliver", ${id})`,
+      };
 
-Pipeline: init → trends → concept → script → asset → audio → validate → publish → done
+      if (sub !== "help" && calls[sub]) {
+        return `🎬 Director shortcut → run:\n\n\`\`\`\n${calls[sub]}\n\`\`\``;
+      }
 
-Example:
-  "Make a product video for MatchaQuick" → brandly_start
-  "Check status" → brandly_status
-  "Export the project" → brandly_export`;
+      return `🎬 Superproduction Director — orchestrate a multi-shot script into ONE final film.
+
+Usage: /brandly_director <subcommand> <projectID>
+Subcommands:
+  init      brandly_director(action="init", ${id}, scriptText="...")
+  next      brandly_director(action="next", ${id})        # get next shot brief
+  status    brandly_director(action="status", ${id})      # production board
+  assemble  brandly_director(action="assemble", ${id})    # cut all shots → final film
+  deliver   brandly_director(action="deliver", ${id})     # validate + export
+
+Full loop:  init → next → [generate shot] → complete → next → … → assemble → deliver
+The script_agent's shots[] JSON feeds in directly via scriptJson={shots:[...]}.`;
     },
   });
 }

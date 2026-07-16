@@ -165,6 +165,28 @@ Return a JSON object:
 - Account for platform aspect ratios in shot composition
 - For metaphor stories: the product NEVER directly solves the problem — it transforms the emotion
 
+## Director-Ready Output (IMPORTANT)
+The JSON you return is consumed **directly** by the Superproduction Director:
+```bash
+brandly_director(action="init", projectID="<uuid>", scriptJson=<your shots[] JSON>)
+```
+So your `shots[]` MUST use these exact field names (the Director maps them as-is):
+- `id` (number/string) — shot number
+- `title` (string, optional) — short name, shown as lower-third if `showTitles=true`
+- `description` (string, required) — what happens
+- `subject` (string, optional) — who/what is the focus
+- `environment` (string, optional) — background/setting
+- `prompt` (string, required) — the optimized generation prompt
+- `negativePrompt` (string, optional) — negative prompt
+- `model` (string, optional) — e.g. `kling3_0`, `hailuo_2_3`, `seedance_2_0`
+- `cameraMovement` (string, optional)
+- `lighting` (string, optional)
+- `duration` (number, optional, seconds)
+- `aspectRatio` (string, optional, e.g. `9:16`)
+
+See `references/shots-schema.json` for the full contract. The Director auto-links each shot to the
+previous one for continuity, so keep subjects/products consistent shot-to-shot.
+
 ## Save Output
 After returning the JSON, save TWO markdown files to the paths provided in `## Artifact Save Paths`:
 

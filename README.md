@@ -20,8 +20,8 @@ git clone https://github.com/Dream-Pixels-Forge/pi-brandly.git
 
 ## Features
 
-- **26 tools** for complete video production pipeline (incl. assembly, motion graphics, brand kits, batch variations, auto-captions, scene consistency)
-- **8 specialized agents** (trends, concept, script, asset, audio, publish, image analyzer, validation)
+- **27 tools** for complete video production pipeline (incl. assembly, motion graphics, brand kits, batch variations, auto-captions, scene consistency, and the **Superproduction Director**)
+- **9 specialized agents** (trends, concept, script, asset, audio, publish, image analyzer, validation, **director**)
 - **Multi-provider support** — Higgsfield, Kling, OpenArt, Magnific, Runway, Pika
 - **Video editing** — Remotion-based trimming, concatenation, overlays, transitions
 - **Quality validation** — Higgsfield Virality Predictor integration
@@ -58,6 +58,31 @@ git clone https://github.com/Dream-Pixels-Forge/pi-brandly.git
 | `brandly_auto_caption` | Generate word-level captions (SRT) |
 | `brandly_scene_consistency` | Lock character/product references |
 | `brandly_motion_graphics` | Create Remotion motion graphics |
+| `brandly_director` | **Superproduction Director** — orchestrate a multi-shot script into one final film |
+
+**Slash command:** `/brandly_director` — quick launcher for the Director loop (init / next / status / assemble / deliver).
+
+## Superproduction Director
+
+When the user supplies a **script with multiple shots**, the Director turns it into a single delivered film:
+
+```
+brandly_director(action="init", projectID, scriptText="""
+### Shot 1 — Hook\nProduct slams onto marble...\n### Shot 2 — Reveal\nLiquid pours in slow-mo...\n""")            # plan the production (N shots)
+loop:
+  brandly_director(action="next", projectID)   # get next shot brief
+  <generate that shot with the video tools>
+  brandly_director(action="complete", projectID, shotId, clipPath)
+brandly_director(action="assemble", projectID)         # cut all shots into one film
+brandly_director(action="deliver", projectID)          # validate + export
+```
+
+State lives in `.pi/brandly/projects/{id}/production.json` — pause/resume anytime, and rework any shot via `action="rework"`.
+
+**Auto identity-lock:** at `init`, the Director auto-creates `brandly_scene_consistency` references for every unique subject/product in the script (reusing any product image as a reference) and assigns each shot to its character. Each `next` brief then tells the generator to call `generate_consistent_prompt` so the product/character stays identical shot-to-shot. Disable with `lockConsistency=false`.
+
+The `shots[]` JSON emitted by the **script_agent** is Director-ready: pass it straight in via
+`scriptJson={shots:[...]}` (see `references/shots-schema.json` for the full contract).
 
 ## Pipeline
 

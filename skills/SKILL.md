@@ -87,6 +87,33 @@ brandly_download(projectID="<uuid>", mediaType="video", mediaUrl="...", filename
 brandly_export(projectID="<uuid>")
 ```
 
+## Superproduction Director (Multi-Shot Orchestration)
+When the user gives a **script with multiple shots** and wants them produced and cut into ONE final film, run the Director. It owns production state, dispatches shots one by one, tracks each, then assembles + delivers.
+```bash
+# 1. Plan the production from a script (markdown, shot tables, or shots[] JSON)
+brandly_director(action="init", projectID="<uuid>", scriptText="""
+### Shot 1 — Hook\nProduct slams onto marble...\n### Shot 2 — Reveal\nLiquid pours in slow-mo...\n""")
+
+# 2. Loop: get next shot -> generate it -> record it
+brandly_director(action="next", projectID="<uuid>")          # returns the shot brief + continuityClip
+#   <generate that shot with the video tools, honoring continuityClip>
+brandly_director(action="complete", projectID="<uuid>", shotId="shot-1", clipPath="<path>", credits=15)
+#   repeat until action="next" returns status:"all_done"
+
+# 3. Cut all shots into one film and render
+brandly_director(action="assemble", projectID="<uuid>", transitionType="fade", showTitles=true)
+#   cd <assemblyDir> && npm install && bash build.sh
+
+# 4. Validate virality + export the package
+brandly_director(action="deliver", projectID="<uuid>")
+```
+- State lives in `.pi/brandly/projects/{id}/production.json` — `pause`/`resume` anytime.
+- Rework a weak shot: `brandly_director(action="rework", projectID, shotId, newPrompt="...")`.
+- For character/product identity across the film, lock references first with `brandly_scene_consistency`.
+- **Slash shortcut:** `/brandly_director <subcommand> <projectID>` (init / next / status / assemble / deliver).
+- The `script_agent`'s `shots[]` JSON feeds in directly via `scriptJson={shots:[...]}` (see `references/shots-schema.json`).
+- **Auto identity-lock:** `init` auto-creates `brandly_scene_consistency` references for every subject/product and assigns each shot. The `next` brief includes a `0. LOCK IDENTITY` step (call `brandly_scene_consistency(action="generate_consistent_prompt", ...)`) so the product/character stays identical across all shots. Pass `lockConsistency=false` to skip.
+
 ## Video Editing (Remotion)
 ```bash
 # Trim
