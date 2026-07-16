@@ -3,7 +3,7 @@
  */
 
 import { join } from "node:path";
-import { mkdir, copyFile } from "node:fs/promises";
+import { mkdir, copyFile, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import type { ProjectData } from "../types";
 import type { VideoStyle } from "../constants";
@@ -99,6 +99,29 @@ export function createStartTool(ctx: ToolContext) {
         await mkdir(join(ctx.directory, root, projectId), { recursive: true });
       }
 
+      // Ensure the user's project .gitignore excludes Brandly's generated media
+      // directories so they are never committed to the user's own repo.
+      const gitignorePath = join(ctx.directory, ".gitignore");
+      const brandlyMarker = "# Brandly generated media";
+      const brandlyBlock =
+        "\n" +
+        brandlyMarker +
+        "\n" +
+        `${IMAGEN_DIR}/\n` +
+        `${VIDEOGEN_DIR}/\n` +
+        `${AUDGEN_DIR}/\n` +
+        `${CONSISTENCY_DIR}/\n` +
+        `${ASSEMBLY_DIR}/\n`;
+      let existingGitignore = "";
+      try {
+        existingGitignore = await readFile(gitignorePath, "utf-8");
+      } catch {
+        existingGitignore = "";
+      }
+      if (!existingGitignore.includes(brandlyMarker)) {
+        await writeFile(gitignorePath, existingGitignore.trimEnd() + brandlyBlock, "utf-8");
+      }
+
       // Copy product image if provided
       if (imagePath) {
         await mkdir(dirs.imagen, { recursive: true });
@@ -116,6 +139,7 @@ export function createStartTool(ctx: ToolContext) {
         status: "created",
         message: `Project "${productName}" created with ID: ${projectId}`,
         nextPhase: "init",
+        gitignore: gitignorePath,
         dirs: {
           project: dirs.project,
           imagen: dirs.imagen,
