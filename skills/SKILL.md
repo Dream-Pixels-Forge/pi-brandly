@@ -44,6 +44,29 @@ brandly_select_provider(providerId="higgsfield")
 brandly_select_provider(listOnly=true)  # List all providers
 ```
 
+### Step 0b: Generate Video with MMX (Recommended)
+The `brandly_mmx_video` tool wraps the MiniMax mmx CLI for video generation:
+```bash
+# Text-to-Video (Hailuo-2.3)
+brandly_mmx_video(action="generate", projectID="...", prompt="A product on marble surface")
+
+# Image-to-Video (use first frame)
+brandly_mmx_video(action="generate", projectID="...", prompt="Camera pushes in", firstFrame="product.jpg")
+
+# Subject-to-Video (character/product consistency via S2V-01)
+brandly_mmx_video(action="generate", projectID="...", prompt="Person walks forward", subjectImage="character-ref.jpg")
+
+# Start-End Frame interpolation (SEF via Hailuo-02)
+brandly_mmx_video(action="generate", projectID="...", prompt="Smooth transition", firstFrame="start.jpg", lastFrame="end.jpg")
+
+# Async mode (return task ID immediately)
+brandly_mmx_video(action="generate", projectID="...", prompt="...", async=true)
+
+# Check status / download
+brandly_mmx_video(action="status", projectID="...", taskId="xxx")
+brandly_mmx_video(action="download", projectID="...", taskId="xxx")
+```
+
 ### Step 1: Analyze Image (Optional but Recommended)
 ```bash
 brandly_analyze_image(imagePath="product.jpg", context="Premium wireless earbuds")

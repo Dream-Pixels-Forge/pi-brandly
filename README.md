@@ -59,6 +59,7 @@ git clone https://github.com/Dream-Pixels-Forge/pi-brandly.git
 | `brandly_scene_consistency` | Lock character/product references |
 | `brandly_motion_graphics` | Create Remotion motion graphics |
 | `brandly_director` | **Superproduction Director** — orchestrate a multi-shot script into one final film |
+| `brandly_mmx_video` | **MMX Video** — generate videos via mmx CLI (T2V/I2V/SEF/S2V for character consistency) |
 
 **Slash command:** `/brandly_director` — quick launcher for the Director loop (init / next / status / assemble / deliver).
 

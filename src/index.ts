@@ -6,7 +6,7 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
+import { Type, type TSchema } from "typebox";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -43,6 +43,7 @@ import { createAutoCaptionTool } from "./tools/auto-caption.js";
 import { createSceneConsistencyTool } from "./tools/scene-consistency.js";
 import { createMotionGraphicsTool } from "./tools/motion-graphics.js";
 import { createMatrixTool } from "./tools/matrix.js";
+import { createMmxVideoTool } from "./tools/mmx-video.js";
 import { createDirectorTool } from "./director.js";
 
 /**
@@ -68,529 +69,305 @@ export default function (pi: ExtensionAPI) {
     return ctx;
   }
 
+  // ── Registration helper ─────────────────────────────────────────────────
+  // Reduces boilerplate: every brandly tool follows the same pattern.
+  function registerBrandlyTool(
+    name: string,
+    label: string,
+    description: string,
+    promptSnippet: string,
+    promptGuidelines: string[],
+    parameters: TSchema,
+    handler: (params: Record<string, unknown>, context: ToolContext) => Promise<Record<string, unknown>>
+  ) {
+    pi.registerTool({
+      name,
+      label,
+      description,
+      promptSnippet,
+      promptGuidelines,
+      parameters,
+      async execute(_toolCallId, params, _signal, _onUpdate, extCtx) {
+        const context = ensureContext(extCtx.cwd);
+        const result = await handler(params as Record<string, unknown>, context);
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          details: result,
+        };
+      },
+    });
+  }
+
   // ============================================================
-  // Register all 20 brandly_* tools
+  // Register all brandly_* tools via the registration helper
   // ============================================================
 
-  // 1. brandly_start — Create new project
-  pi.registerTool({
-    name: "brandly_start",
-    label: "Brandly Start",
-    description: "Start a new Brandly video project. Provide a product idea and optionally an image to kick off the agent pipeline.",
-    promptSnippet: "Start a new Brandly video project",
-    promptGuidelines: [
-      "Use brandly_start when the user wants to create a product marketing video",
-      "Provide the product idea, name, and optional image path",
-      "Budget defaults to 500 credits if not specified",
-    ],
-    parameters: Type.Object({
+  // 1. brandly_start
+  registerBrandlyTool(
+    "brandly_start",
+    "Brandly Start",
+    "Start a new Brandly video project. Provide a product idea and optionally an image to kick off the agent pipeline.",
+    "Start a new Brandly video project",
+    ["Use brandly_start when the user wants to create a product marketing video", "Provide the product idea, name, and optional image path", "Budget defaults to 500 credits if not specified"],
+    Type.Object({
       idea: Type.String({ description: "Product idea, concept, or brief" }),
       productName: Type.String({ description: "Name of the product" }),
       imagePath: Type.Optional(Type.String({ description: "Optional path to a product image" })),
-      targetPlatforms: Type.Optional(Type.Array(
-        Type.Union([
-          Type.Literal("tiktok"),
-          Type.Literal("instagram"),
-          Type.Literal("youtube"),
-          Type.Literal("all"),
-        ]),
-        { description: "Target social platforms", default: ["tiktok", "instagram"] }
-      )),
-      budgetCredits: Type.Optional(Type.Number({
-        description: "Max credits to spend",
-        default: 500,
-        exclusiveMinimum: 0,
-      })),
-      style: Type.Optional(Type.Union([
-        Type.Literal("cinematic"),
-        Type.Literal("ugc"),
-        Type.Literal("montage"),
-        Type.Literal("multi_shot"),
-        Type.Literal("continuous"),
-        Type.Literal("unboxing"),
-        Type.Literal("lifestyle"),
-      ], { description: "Video style preference" })),
+      targetPlatforms: Type.Optional(Type.Array(Type.Union([Type.Literal("tiktok"), Type.Literal("instagram"), Type.Literal("youtube"), Type.Literal("all")]), { description: "Target social platforms", default: ["tiktok", "instagram"] })),
+      budgetCredits: Type.Optional(Type.Number({ description: "Max credits to spend", default: 500, exclusiveMinimum: 0 })),
+      style: Type.Optional(Type.Union([Type.Literal("cinematic"), Type.Literal("ugc"), Type.Literal("montage"), Type.Literal("multi_shot"), Type.Literal("continuous"), Type.Literal("unboxing"), Type.Literal("lifestyle")], { description: "Video style preference" })),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createStartTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+    async (params, context) => createStartTool(context).execute(params),
+  );
 
-  // 2. brandly_analyze_image — Deep image analysis
-  pi.registerTool({
-    name: "brandly_analyze_image",
-    label: "Brandly Analyze Image",
-    description: "Deep-analyze any product image across 12 dimensions: subject, product details, colors, lighting, composition, style, emotion, platform suitability, and creative direction.",
-    promptSnippet: "Analyze a product image for marketing",
-    promptGuidelines: [
-      "Use brandly_analyze_image before starting a project to get detailed creative brief",
-      "Can be used standalone or attached to a project",
-    ],
-    parameters: Type.Object({
+  // 2. brandly_analyze_image
+  registerBrandlyTool(
+    "brandly_analyze_image",
+    "Brandly Analyze Image",
+    "Deep-analyze any product image across 12 dimensions: subject, product details, colors, lighting, composition, style, emotion, platform suitability, and creative direction.",
+    "Analyze a product image for marketing",
+    ["Use brandly_analyze_image before starting a project to get detailed creative brief", "Can be used standalone or attached to a project"],
+    Type.Object({
       imagePath: Type.String({ description: "Path or URL to the image" }),
       context: Type.Optional(Type.String({ description: "Additional context about the product" })),
       projectID: Type.Optional(Type.String({ description: "Attach analysis to existing project" })),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createAnalyzeImageTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+    async (params, context) => createAnalyzeImageTool(context).execute(params),
+  );
 
-  // 3. brandly_run_project — Dispatch next pipeline agent
-  pi.registerTool({
-    name: "brandly_run_project",
-    label: "Brandly Run Project",
-    description: "Run the next phase of the Brandly pipeline. Reads the current phase and dispatches the appropriate agent.",
-    promptSnippet: "Run the next pipeline phase",
-    promptGuidelines: [
-      "Use brandly_run_project after brandly_approve to advance the pipeline",
-      "Returns dispatch instructions for the agent subagent",
-    ],
-    parameters: Type.Object({
-      projectID: Type.String({ description: "The project UUID" }),
-    }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createRunTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+  // 3. brandly_run_project
+  registerBrandlyTool(
+    "brandly_run_project",
+    "Brandly Run Project",
+    "Run the next phase of the Brandly pipeline. Reads the current phase and dispatches the appropriate agent.",
+    "Run the next pipeline phase",
+    ["Use brandly_run_project after brandly_approve to advance the pipeline", "Returns dispatch instructions for the agent subagent"],
+    Type.Object({ projectID: Type.String({ description: "The project UUID" }) }),
+    async (params, context) => createRunTool(context).execute(params),
+  );
 
-  // 4. brandly_approve — Approve phase & advance
-  pi.registerTool({
-    name: "brandly_approve",
-    label: "Brandly Approve",
-    description: "Approve the current pipeline phase and advance to the next one.",
-    promptSnippet: "Approve and advance pipeline phase",
-    promptGuidelines: [
-      "Use brandly_approve after reviewing agent output",
-      "Marks phase as completed and advances currentPhase",
-    ],
-    parameters: Type.Object({
+  // 4. brandly_approve
+  registerBrandlyTool(
+    "brandly_approve",
+    "Brandly Approve",
+    "Approve the current pipeline phase and advance to the next one.",
+    "Approve and advance pipeline phase",
+    ["Use brandly_approve after reviewing agent output", "Marks phase as completed and advances currentPhase"],
+    Type.Object({
       projectID: Type.String({ description: "The project UUID" }),
       phase: Type.Optional(Type.String({ description: "Phase to approve (defaults to current phase)" })),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createApproveTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+    async (params, context) => createApproveTool(context).execute(params),
+  );
 
-  // 5. brandly_status — Project status
-  pi.registerTool({
-    name: "brandly_status",
-    label: "Brandly Status",
-    description: "Show the current status of a Brandly project — phase, budget, virality score, and artifacts.",
-    promptSnippet: "Check project status",
-    promptGuidelines: [
-      "Use brandly_status to get an overview of project progress",
-    ],
-    parameters: Type.Object({
-      projectID: Type.String({ description: "The project UUID" }),
-    }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createStatusTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+  // 5. brandly_status
+  registerBrandlyTool(
+    "brandly_status",
+    "Brandly Status",
+    "Show the current status of a Brandly project — phase, budget, virality score, and artifacts.",
+    "Check project status",
+    ["Use brandly_status to get an overview of project progress"],
+    Type.Object({ projectID: Type.String({ description: "The project UUID" }) }),
+    async (params, context) => createStatusTool(context).execute(params),
+  );
 
-  // 6. brandly_estimate — Cost estimation
-  pi.registerTool({
-    name: "brandly_estimate",
-    label: "Brandly Estimate",
-    description: "Estimate credit cost for a video project before starting.",
-    promptSnippet: "Estimate project cost",
-    promptGuidelines: [
-      "Use brandly_estimate to show the user expected costs before committing",
-    ],
-    parameters: Type.Object({
+  // 6. brandly_estimate
+  registerBrandlyTool(
+    "brandly_estimate",
+    "Brandly Estimate",
+    "Estimate credit cost for a video project before starting.",
+    "Estimate project cost",
+    ["Use brandly_estimate to show the user expected costs before committing"],
+    Type.Object({
       idea: Type.String({ description: "Product idea or brief" }),
       productName: Type.String({ description: "Product name" }),
-      style: Type.Optional(Type.Union([
-        Type.Literal("cinematic"),
-        Type.Literal("ugc"),
-        Type.Literal("montage"),
-        Type.Literal("multi_shot"),
-        Type.Literal("continuous"),
-        Type.Literal("unboxing"),
-        Type.Literal("lifestyle"),
-      ], { description: "Video style" })),
-      shotCount: Type.Optional(Type.Number({
-        description: "Number of shots (3-10)",
-        minimum: 3,
-        maximum: 10,
-        default: 5,
-      })),
+      style: Type.Optional(Type.Union([Type.Literal("cinematic"), Type.Literal("ugc"), Type.Literal("montage"), Type.Literal("multi_shot"), Type.Literal("continuous"), Type.Literal("unboxing"), Type.Literal("lifestyle")], { description: "Video style" })),
+      shotCount: Type.Optional(Type.Number({ description: "Number of shots (3-10)", minimum: 3, maximum: 10, default: 5 })),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createEstimateTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+    async (params, context) => createEstimateTool(context).execute(params),
+  );
 
-  // 7. brandly_re_edit — Re-edit a specific shot
-  pi.registerTool({
-    name: "brandly_re_edit",
-    label: "Brandly Re-Edit",
-    description: "Re-edit a specific shot with a new prompt. Use after validation if a shot scores low.",
-    promptSnippet: "Re-edit a specific shot",
-    promptGuidelines: [
-      "Use brandly_re_edit when validation score is low for specific shots",
-    ],
-    parameters: Type.Object({
+  // 7. brandly_re_edit
+  registerBrandlyTool(
+    "brandly_re_edit",
+    "Brandly Re-Edit",
+    "Re-edit a specific shot with a new prompt. Use after validation if a shot scores low.",
+    "Re-edit a specific shot",
+    ["Use brandly_re_edit when validation score is low for specific shots"],
+    Type.Object({
       projectID: Type.String({ description: "The project UUID" }),
       shotId: Type.String({ description: "Shot ID to re-edit (e.g., 'shot-1')" }),
       newPrompt: Type.String({ description: "New prompt for the shot" }),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createReEditTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+    async (params, context) => createReEditTool(context).execute(params),
+  );
 
-  // 8. brandly_validate — Virality validation
-  pi.registerTool({
-    name: "brandly_validate",
-    label: "Brandly Validate",
-    description: "Run Higgsfield virality predictor on the final video to score it for viral potential.",
-    promptSnippet: "Validate video virality",
-    promptGuidelines: [
-      "Use brandly_validate after the final video is rendered",
-      "Returns MCP call instructions for the virality predictor",
-    ],
-    parameters: Type.Object({
+  // 8. brandly_validate
+  registerBrandlyTool(
+    "brandly_validate",
+    "Brandly Validate",
+    "Run Higgsfield virality predictor on the final video to score it for viral potential.",
+    "Validate video virality",
+    ["Use brandly_validate after the final video is rendered", "Returns MCP call instructions for the virality predictor"],
+    Type.Object({
       projectID: Type.String({ description: "The project UUID" }),
       videoPath: Type.String({ description: "Path to the video file" }),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createValidateTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+    async (params, context) => createValidateTool(context).execute(params),
+  );
 
-  // 9. brandly_record_cost — Track credit spend
-  pi.registerTool({
-    name: "brandly_record_cost",
-    label: "Brandly Record Cost",
-    description: "Record actual credit spend against the project budget.",
-    promptSnippet: "Record credit spend",
-    promptGuidelines: [
-      "Use brandly_record_cost after each expensive operation (image/video generation)",
-    ],
-    parameters: Type.Object({
+  // 9. brandly_record_cost
+  registerBrandlyTool(
+    "brandly_record_cost",
+    "Brandly Record Cost",
+    "Record actual credit spend against the project budget.",
+    "Record credit spend",
+    ["Use brandly_record_cost after each expensive operation (image/video generation)"],
+    Type.Object({
       projectID: Type.String({ description: "The project UUID" }),
       phase: Type.String({ description: "Current pipeline phase" }),
       action: Type.String({ description: "What was done (e.g., 'generate_hero_image')" }),
       credits: Type.Number({ description: "Credits spent", exclusiveMinimum: 0 }),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createRecordCostTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+    async (params, context) => createRecordCostTool(context).execute(params),
+  );
 
-  // 10. brandly_save_artifact — Persist agent output
-  pi.registerTool({
-    name: "brandly_save_artifact",
-    label: "Brandly Save Artifact",
-    description: "Save a subagent's output to the project folder for persistence.",
-    promptSnippet: "Save agent output to project",
-    promptGuidelines: [
-      "Use brandly_save_artifact after each agent completes to persist results",
-    ],
-    parameters: Type.Object({
+  // 10. brandly_save_artifact
+  registerBrandlyTool(
+    "brandly_save_artifact",
+    "Brandly Save Artifact",
+    "Save a subagent's output to the project folder for persistence.",
+    "Save agent output to project",
+    ["Use brandly_save_artifact after each agent completes to persist results"],
+    Type.Object({
       projectID: Type.String({ description: "The project UUID" }),
       phase: Type.String({ description: "Pipeline phase (e.g., 'trends', 'concept')" }),
       filename: Type.String({ description: "Filename (e.g., 'trends.md')" }),
       content: Type.String({ description: "File content" }),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createSaveArtifactTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+    async (params, context) => createSaveArtifactTool(context).execute(params),
+  );
 
-  // 11. brandly_memory — View/update preferences
-  pi.registerTool({
-    name: "brandly_memory",
-    label: "Brandly Memory",
-    description: "View or update user preferences (liked hooks, preferred style, budget).",
-    promptSnippet: "View or update user preferences",
-    promptGuidelines: [
-      "Use brandly_memory to remember user preferences across projects",
-    ],
-    parameters: Type.Object({
-      action: Type.Union([
-        Type.Literal("view"),
-        Type.Literal("like_hook"),
-        Type.Literal("dislike_hook"),
-        Type.Literal("reset"),
-      ], { description: "Action to perform" }),
+  // 11. brandly_memory
+  registerBrandlyTool(
+    "brandly_memory",
+    "Brandly Memory",
+    "View or update user preferences (liked hooks, preferred style, budget).",
+    "View or update user preferences",
+    ["Use brandly_memory to remember user preferences across projects"],
+    Type.Object({
+      action: Type.Union([Type.Literal("view"), Type.Literal("like_hook"), Type.Literal("dislike_hook"), Type.Literal("reset")], { description: "Action to perform" }),
       hook: Type.Optional(Type.String({ description: "Hook style to like/dislike" })),
       style: Type.Optional(Type.String({ description: "Preferred video style" })),
       budget: Type.Optional(Type.Number({ description: "Default budget" })),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
+    async (params, context) => {
       const tool = createMemoryTool(context, memory!);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
+      return tool.execute(params);
     },
-  });
+  );
 
-  // 12. brandly_templates — List video style templates
-  pi.registerTool({
-    name: "brandly_templates",
-    label: "Brandly Templates",
-    description: "List available video style templates or get details on a specific template.",
-    promptSnippet: "List video style templates",
-    promptGuidelines: [
-      "Use brandly_templates to show available styles before starting a project",
-    ],
-    parameters: Type.Object({
-      templateId: Type.Optional(Type.String({ description: "Specific template to view" })),
-    }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createTemplatesTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+  // 12. brandly_templates
+  registerBrandlyTool(
+    "brandly_templates",
+    "Brandly Templates",
+    "List available video style templates or get details on a specific template.",
+    "List video style templates",
+    ["Use brandly_templates to show available styles before starting a project"],
+    Type.Object({ templateId: Type.Optional(Type.String({ description: "Specific template to view" })) }),
+    async (params, context) => createTemplatesTool(context).execute(params),
+  );
 
-  // 13. brandly_cancel — Pause/cancel project
-  pi.registerTool({
-    name: "brandly_cancel",
-    label: "Brandly Cancel",
-    description: "Pause or cancel a Brandly project.",
-    promptSnippet: "Pause or cancel project",
-    promptGuidelines: [
-      "Use brandly_cancel to pause or cancel a running project",
-    ],
-    parameters: Type.Object({
+  // 13. brandly_cancel
+  registerBrandlyTool(
+    "brandly_cancel",
+    "Brandly Cancel",
+    "Pause or cancel a Brandly project.",
+    "Pause or cancel project",
+    ["Use brandly_cancel to pause or cancel a running project"],
+    Type.Object({
       projectID: Type.String({ description: "The project UUID" }),
-      action: Type.Union([
-        Type.Literal("pause"),
-        Type.Literal("cancel"),
-        Type.Literal("resume"),
-      ], { description: "Action: pause, cancel, or resume" }),
+      action: Type.Union([Type.Literal("pause"), Type.Literal("cancel"), Type.Literal("resume")], { description: "Action: pause, cancel, or resume" }),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createCancelTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+    async (params, context) => createCancelTool(context).execute(params),
+  );
 
-  // 14. brandly_progress — Pipeline progress
-  pi.registerTool({
-    name: "brandly_progress",
-    label: "Brandly Progress",
-    description: "Get the pipeline progress percentage and phase breakdown.",
-    promptSnippet: "Get pipeline progress",
-    promptGuidelines: [
-      "Use brandly_progress to show visual progress of the pipeline",
-    ],
-    parameters: Type.Object({
-      projectID: Type.String({ description: "The project UUID" }),
-    }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createProgressTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+  // 14. brandly_progress
+  registerBrandlyTool(
+    "brandly_progress",
+    "Brandly Progress",
+    "Get the pipeline progress percentage and phase breakdown.",
+    "Get pipeline progress",
+    ["Use brandly_progress to show visual progress of the pipeline"],
+    Type.Object({ projectID: Type.String({ description: "The project UUID" }) }),
+    async (params, context) => createProgressTool(context).execute(params),
+  );
 
-  // 15. brandly_export — Collect all artifacts
-  pi.registerTool({
-    name: "brandly_export",
-    label: "Brandly Export",
-    description: "Export all project artifacts and generated media files.",
-    promptSnippet: "Export project artifacts",
-    promptGuidelines: [
-      "Use brandly_export when the user wants to download or package the project",
-    ],
-    parameters: Type.Object({
+  // 15. brandly_export
+  registerBrandlyTool(
+    "brandly_export",
+    "Brandly Export",
+    "Export all project artifacts and generated media files.",
+    "Export project artifacts",
+    ["Use brandly_export when the user wants to download or package the project"],
+    Type.Object({
       projectID: Type.String({ description: "The project UUID" }),
       outputPath: Type.Optional(Type.String({ description: "Custom export path" })),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createExportTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+    async (params, context) => createExportTool(context).execute(params),
+  );
 
-  // 16. brandly_list_projects — List all projects
-  pi.registerTool({
-    name: "brandly_list_projects",
-    label: "Brandly List Projects",
-    description: "List all Brandly projects in the workspace.",
-    promptSnippet: "List all Brandly projects",
-    promptGuidelines: [
-      "Use brandly_list_projects to show all projects",
-    ],
-    parameters: Type.Object({}),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createListProjectsTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+  // 16. brandly_list_projects
+  registerBrandlyTool(
+    "brandly_list_projects",
+    "Brandly List Projects",
+    "List all Brandly projects in the workspace.",
+    "List all Brandly projects",
+    ["Use brandly_list_projects to show all projects"],
+    Type.Object({}),
+    async (_params, context) => createListProjectsTool(context).execute({}),
+  );
 
-  // 17. brandly_download — Download generated media (NEW)
-  pi.registerTool({
-    name: "brandly_download",
-    label: "Brandly Download",
-    description: "Download generated media (image, video, audio) from Higgsfield/Magnific to project folders.",
-    promptSnippet: "Download generated media",
-    promptGuidelines: [
-      "Use brandly_download after asset/audio phases to save media locally",
-      "Media is saved to imagen/, videgen/, or audgen/ based on type",
-    ],
-    parameters: Type.Object({
+  // 17. brandly_download
+  registerBrandlyTool(
+    "brandly_download",
+    "Brandly Download",
+    "Download generated media (image, video, audio) from Higgsfield/Magnific to project folders.",
+    "Download generated media",
+    ["Use brandly_download after asset/audio phases to save media locally", "Media is saved to imagen/, videgen/, or audgen/ based on type"],
+    Type.Object({
       projectID: Type.String({ description: "The project UUID" }),
-      mediaType: Type.Union([
-        Type.Literal("image"),
-        Type.Literal("video"),
-        Type.Literal("audio"),
-      ], { description: "Type of media" }),
+      mediaType: Type.Union([Type.Literal("image"), Type.Literal("video"), Type.Literal("audio")], { description: "Type of media" }),
       mediaUrl: Type.String({ description: "URL of the media to download" }),
       filename: Type.String({ description: "Filename to save as" }),
       jobId: Type.Optional(Type.String({ description: "Optional job ID for tracking" })),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createDownloadTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+    async (params, context) => createDownloadTool(context).execute(params),
+  );
 
-  // 18. brandly_select_provider — AI provider selection (NEW)
-  pi.registerTool({
-    name: "brandly_select_provider",
-    label: "Brandly Select Provider",
-    description: "Select an AI generation provider (Higgsfield, Kling, OpenArt, Magnific, Runway, Pika, Matrix) or list available providers.",
-    promptSnippet: "Select AI generation provider",
-    promptGuidelines: [
-      "Use brandly_select_provider to choose or list AI generation providers",
-      "Different providers excel at different tasks",
-    ],
-    parameters: Type.Object({
+  // 18. brandly_select_provider
+  registerBrandlyTool(
+    "brandly_select_provider",
+    "Brandly Select Provider",
+    "Select an AI generation provider (Higgsfield, Kling, OpenArt, Magnific, Runway, Pika, Matrix) or list available providers.",
+    "Select AI generation provider",
+    ["Use brandly_select_provider to choose or list AI generation providers", "Different providers excel at different tasks"],
+    Type.Object({
       projectID: Type.Optional(Type.String({ description: "Project to set provider for" })),
-      providerId: Type.Optional(Type.Union([
-        Type.Literal("higgsfield"),
-        Type.Literal("kling"),
-        Type.Literal("openart"),
-        Type.Literal("magnific"),
-        Type.Literal("runway"),
-        Type.Literal("pika"),
-        Type.Literal("matrix"),
-      ], { description: "Provider to select" })),
-      listOnly: Type.Optional(Type.Boolean({
-        description: "Only list providers, don't select one",
-        default: false,
-      })),
+      providerId: Type.Optional(Type.Union([Type.Literal("higgsfield"), Type.Literal("kling"), Type.Literal("openart"), Type.Literal("magnific"), Type.Literal("runway"), Type.Literal("pika"), Type.Literal("matrix")], { description: "Provider to select" })),
+      listOnly: Type.Optional(Type.Boolean({ description: "Only list providers, don't select one", default: false })),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createProviderTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+    async (params, context) => createProviderTool(context).execute(params),
+  );
 
-  // 18b. brandly_matrix — MiniMax Matrix (image understanding / image / video)
-  pi.registerTool({
-    name: "brandly_matrix",
-    label: "Brandly Matrix (MiniMax)",
-    description: "MiniMax Matrix: analyze images (understanding/OCR), generate images, or generate video. Credentials read from Pi's provider config (~/.pi/agent/auth.json -> minimax).",
-    promptSnippet: "Use MiniMax Matrix for image analysis or generation",
-    promptGuidelines: [
-      "Use brandly_matrix action=analyze to understand/describe/OCR an image",
-      "Use brandly_matrix action=image or video to generate with MiniMax",
-    ],
-    parameters: Type.Object({
+  // 18b. brandly_matrix
+  registerBrandlyTool(
+    "brandly_matrix",
+    "Brandly Matrix (MiniMax)",
+    "MiniMax Matrix: analyze images (understanding/OCR), generate images, or generate video. Credentials read from Pi's provider config (~/.pi/agent/auth.json -> minimax).",
+    "Use MiniMax Matrix for image analysis or generation",
+    ["Use brandly_matrix action=analyze to understand/describe/OCR an image", "Use brandly_matrix action=image or video to generate with MiniMax"],
+    Type.Object({
       action: Type.String({ enum: ["analyze", "image", "video"], description: "analyze=image understanding, image=image gen, video=video gen" }),
       imagePath: Type.Optional(Type.String({ description: "Local path or URL to the image" })),
       prompt: Type.Optional(Type.String({ description: "Question (analyze) or generation description (image/video)" })),
@@ -609,7 +386,34 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  // 19. brandly_video_edit — Remotion video editing (NEW)
+  // 18c. brandly_mmx_video — MiniMax mmx CLI video generation
+  registerBrandlyTool(
+    "brandly_mmx_video",
+    "Brandly MMX Video",
+    "Generate videos using MiniMax mmx CLI. Supports T2V (text-to-video), I2V (image-to-video), SEF (start-end frame interpolation), and S2V (subject-to-video for character/product consistency).",
+    "Generate video with mmx CLI",
+    [
+      "Use brandly_mmx_video for video generation via mmx CLI",
+      "Use subjectImage parameter for character/product consistency (S2V mode)",
+      "Use firstFrame+lastFrame for SEF interpolation mode",
+      "Use async=true for non-blocking generation",
+    ],
+    Type.Object({
+      action: Type.Union([Type.Literal("generate"), Type.Literal("status"), Type.Literal("download")], { description: "Action: generate, check status, or download" }),
+      projectID: Type.String({ description: "The project UUID" }),
+      prompt: Type.Optional(Type.String({ description: "Video description prompt" })),
+      firstFrame: Type.Optional(Type.String({ description: "First frame image (I2V/SEF mode)" })),
+      lastFrame: Type.Optional(Type.String({ description: "Last frame image (SEF mode)" })),
+      subjectImage: Type.Optional(Type.String({ description: "Subject reference for character consistency (S2V mode)" })),
+      model: Type.Optional(Type.String({ description: "Model override (auto-selected by mode)" })),
+      taskId: Type.Optional(Type.String({ description: "Task ID for status/download" })),
+      async: Type.Optional(Type.Boolean({ description: "Return task ID immediately", default: false })),
+      downloadPath: Type.Optional(Type.String({ description: "Path to save completed video" })),
+    }),
+    async (params, context) => createMmxVideoTool(context).execute(params),
+  );
+
+  // 19. brandly_video_edit — Remotion video editing
   pi.registerTool({
     name: "brandly_video_edit",
     label: "Brandly Video Edit",

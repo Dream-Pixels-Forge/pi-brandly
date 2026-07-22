@@ -5,8 +5,11 @@
  * Adapted from brandly-plugin with atomic writes and Pi-compatible paths
  */
 
-import { readFile, writeFile, rename } from "node:fs/promises";
+import { readFile, writeFile, rename, mkdir, unlink } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { randomUUID } from "node:crypto";
 
 interface CostEntry {
   phase: string;
@@ -23,14 +26,56 @@ interface ProjectState {
 }
 
 /**
+ * Simple file-based lock with retry to prevent concurrent write races.
+ * Uses a .lock file alongside the target; if stale (>5s), forcibly acquired.
+ */
+async function withLock<T>(lockPath: string, fn: () => Promise<T>, retries = 5, delayMs = 50): Promise<T> {
+  const lockTmp = lockPath + "." + randomUUID().slice(0, 8);
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      // Try to create lock file exclusively
+      await writeFile(lockTmp, String(process.pid), { flag: "wx" });
+      // Rename is atomic on most filesystems
+      await rename(lockTmp, lockPath);
+      try {
+        return await fn();
+      } finally {
+        try { await unlink(lockPath); } catch { /* ignore */ }
+      }
+    } catch (err: any) {
+      if (err?.code === "EEXIST") {
+        // Lock exists — check if stale (older than 5s)
+        try {
+          const stat = (await import("node:fs/promises")).stat;
+          const s = await stat(lockPath);
+          if (Date.now() - s.mtimeMs > 5000) {
+            await unlink(lockPath).catch(() => {});
+            continue;
+          }
+        } catch { /* lock file gone, retry */ }
+        await new Promise((r) => setTimeout(r, delayMs * (attempt + 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error(`Failed to acquire lock after ${retries} attempts: ${lockPath}`);
+}
+
+/**
  * Tracks credit spend per project and enforces budget gates.
  * Call `canAfford()` before every expensive operation.
+ * Uses file locking to prevent race conditions on concurrent writes.
  */
 export class CostTracker {
   constructor(private projectsDir: string) {}
 
   private getProjectPath(id: string) {
     return join(this.projectsDir, id, "project.json");
+  }
+
+  private getLockPath(id: string) {
+    return join(this.projectsDir, id, "project.json.lock");
   }
 
   private async readState(id: string): Promise<ProjectState> {
@@ -41,6 +86,7 @@ export class CostTracker {
   private async writeState(id: string, state: ProjectState): Promise<void> {
     const targetPath = this.getProjectPath(id);
     const tmpPath = targetPath + ".tmp";
+    await mkdir(join(targetPath, ".."), { recursive: true });
     await writeFile(tmpPath, JSON.stringify(state, null, 2));
     await rename(tmpPath, targetPath);
   }
@@ -77,28 +123,30 @@ export class CostTracker {
     action: string,
     credits: number
   ): Promise<{ newTotal: number; remaining: number }> {
-    const state = await this.readState(projectId);
+    return withLock(this.getLockPath(projectId), async () => {
+      const state = await this.readState(projectId);
 
-    if (state.creditsSpent + credits > state.budgetCredits) {
-      throw new Error(
-        `Budget exceeded! Attempted: ${state.creditsSpent + credits}, Budget: ${state.budgetCredits}`
-      );
-    }
+      if (state.creditsSpent + credits > state.budgetCredits) {
+        throw new Error(
+          `Budget exceeded! Attempted: ${state.creditsSpent + credits}, Budget: ${state.budgetCredits}`
+        );
+      }
 
-    state.creditsSpent += credits;
-    state.costLog.push({
-      phase,
-      action,
-      credits,
-      timestamp: new Date().toISOString(),
+      state.creditsSpent += credits;
+      state.costLog.push({
+        phase,
+        action,
+        credits,
+        timestamp: new Date().toISOString(),
+      });
+
+      await this.writeState(projectId, state);
+
+      return {
+        newTotal: state.creditsSpent,
+        remaining: state.budgetCredits - state.creditsSpent,
+      };
     });
-
-    await this.writeState(projectId, state);
-
-    return {
-      newTotal: state.creditsSpent,
-      remaining: state.budgetCredits - state.creditsSpent,
-    };
   }
 
   /**

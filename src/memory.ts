@@ -25,16 +25,20 @@ export class Memory {
 
   constructor(memoryDir: string) {
     this.memoryPath = join(memoryDir, "user-preferences.json");
-    this.data = this.load();
+    this.data = this.loadSync();
   }
 
-  private load(): UserPreferences {
+  /**
+   * Synchronous load for constructor — uses readFileSync via dynamic import.
+   * This is acceptable because the constructor must be sync for Pi's ExtensionAPI.
+   */
+  private loadSync(): UserPreferences {
     try {
       if (existsSync(this.memoryPath)) {
-        const content = require("node:fs").readFileSync(
-          this.memoryPath,
-          "utf-8"
-        );
+        // Dynamic require is intentional: constructor must be synchronous.
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const fs = require("node:fs") as typeof import("node:fs");
+        const content = fs.readFileSync(this.memoryPath, "utf-8");
         return JSON.parse(content);
       }
     } catch {

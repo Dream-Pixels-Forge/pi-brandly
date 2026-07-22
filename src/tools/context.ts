@@ -5,7 +5,7 @@
  * Key adaptation: Uses .pi/brandly/ for project storage (trusted by Pi's trust system)
  */
 
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   readFile,
   writeFile,
@@ -36,7 +36,7 @@ import {
  * Path validation: ensure path stays within allowed directories
  */
 function isPathAllowed(filePath: string, baseDir: string): boolean {
-  const resolved = join(baseDir, filePath);
+  const resolved = resolve(filePath);
   return resolved.startsWith(baseDir);
 }
 

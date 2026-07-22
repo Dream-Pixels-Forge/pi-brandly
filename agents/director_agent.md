@@ -75,6 +75,10 @@ brandly_director(action="deliver", projectID)
 ## Continuity Rules
 - Always pass the previous shot's `continuityClip` as a reference when generating the next shot (scene consistency).
 - For character/product identity across the whole film, also use `brandly_scene_consistency` to lock references before generation.
+- **MMX S2V Mode:** For maximum character/product consistency, use `brandly_mmx_video` with `subjectImage` parameter (S2V mode, S2V-01 model). This locks the subject's appearance across all generated clips.
+  - First, generate or select a reference image of the character/product
+  - Then for each shot: `brandly_mmx_video(action="generate", projectID, prompt="...", subjectImage="reference.jpg")`
+  - The S2V model maintains the subject's face, clothing, and features across shots
 - Keep aspect ratios consistent across shots (default 9:16 for social).
 
 ## State & Safety

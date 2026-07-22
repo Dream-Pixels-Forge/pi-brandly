@@ -98,6 +98,14 @@ export interface DirectorPlan {
     shotCharacter: Record<string, string>; // shotId -> characterId
     rules: Record<string, unknown>;
   };
+  /** MMX S2V consistency workflow for character/product identity */
+  mmxConsistency?: {
+    enabled: boolean;
+    mode: string;
+    model: string;
+    referenceImages: string[];
+    workflow: string[];
+  };
 }
 
 // ----------------------------------------------------------------------------
@@ -369,6 +377,20 @@ async function lockConsistencyAtInit(
       maintainAppearance: true, lockColors: true, lockClothing: true, referenceStrength: "strict",
     },
   };
+
+  // Store mmx S2V reference workflow for the Director agent
+  plan.mmxConsistency = {
+    enabled: true,
+    mode: "s2v",
+    model: "S2V-01",
+    referenceImages,
+    workflow: [
+      "1. Use the first reference image as the subject-image for all shots",
+      "2. Call brandly_mmx_video(action='generate', projectID, prompt=<shot-prompt>, subjectImage=<reference>)",
+      "3. The S2V-01 model maintains character/product appearance across clips",
+      "4. For the first shot, any reference image works; subsequent shots inherit consistency",
+    ],
+  };
 }
 
 // ----------------------------------------------------------------------------
@@ -466,8 +488,10 @@ async function locateClip(ctx: ToolContext, projectID: string, shot: DirectorSho
   const dir = join(ctx.directory, "videgen", projectID);
   if (!existsSync(dir)) return null;
   const files = await readdir(dir);
+  // Use anchored regex to prevent shot-1 matching shot-10/shot-11/etc.
+  const shotIdPattern = shot.shotId.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
   const match = files.find(
-    (f) => /\.(mp4|webm|mov)$/i.test(f) && f.toLowerCase().includes(shot.shotId.toLowerCase())
+    (f) => /\.(mp4|webm|mov)$/i.test(f) && new RegExp(`^${shotIdPattern}\.(mp4|webm|mov)$`, "i").test(f)
   );
   return match ? join(dir, match) : null;
 }
@@ -929,9 +953,18 @@ export function createDirectorTool(ctx: ToolContext) {
             const sceneIndex = s.index - 1;
             const instructions: string[] = [];
             if (consistencyCharId) {
-              instructions.push(
-                `0. LOCK IDENTITY: call brandly_scene_consistency(action="generate_consistent_prompt", projectID="${projectID}", sceneIndex=${sceneIndex}, basePrompt="${s.prompt}") and use its returned prompt so ${s.subject || plan.productName} stays identical across shots. Reference images: consistency/${projectID}/`
-              );
+              // MMX S2V consistency workflow
+              const refImages = plan.mmxConsistency?.referenceImages || [];
+              const s2vRef = refImages[0];
+              if (s2vRef) {
+                instructions.push(
+                  `0. LOCK IDENTITY (MMX S2V): call brandly_mmx_video(action="generate", projectID="${projectID}", prompt="${s.prompt}", subjectImage="${s2vRef}") to maintain ${s.subject || plan.productName}'s appearance via S2V-01 model.`
+                );
+              } else {
+                instructions.push(
+                  `0. LOCK IDENTITY: call brandly_scene_consistency(action="generate_consistent_prompt", projectID="${projectID}", sceneIndex=${sceneIndex}, basePrompt="${s.prompt}") and use its returned prompt so ${s.subject || plan.productName} stays identical across shots. Reference images: consistency/${projectID}/`
+                );
+              }
             }
             instructions.push(
               `${consistencyCharId ? "1" : "1"}. Generate clip for ${s.shotId} using the prompt above${s.model ? ` (suggested model: ${s.model})` : ""}.`,

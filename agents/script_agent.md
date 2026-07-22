@@ -165,6 +165,16 @@ Return a JSON object:
 - Account for platform aspect ratios in shot composition
 - For metaphor stories: the product NEVER directly solves the problem — it transforms the emotion
 
+## Character/Product Consistency via MMX S2V
+
+For maximum visual consistency of characters or products across shots, use the **S2V (Subject-to-Video)** mode via `brandly_mmx_video`:
+
+1. **Generate or select a reference image** of the main character/product
+2. **For each shot**, generate with: `brandly_mmx_video(action="generate", projectID, prompt="...", subjectImage="reference.jpg")`
+3. The S2V-01 model maintains the subject's face, clothing, and features across all clips
+
+This is the recommended approach for multi-shot videos where the same person or product appears in every shot.
+
 ## Director-Ready Output (IMPORTANT)
 The JSON you return is consumed **directly** by the Superproduction Director:
 ```bash
