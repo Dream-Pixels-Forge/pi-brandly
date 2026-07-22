@@ -375,16 +375,8 @@ export default function (pi: ExtensionAPI) {
       projectID: Type.Optional(Type.String({ description: "Optional Brandly project to attach to" })),
       aspectRatio: Type.Optional(Type.String({ description: "Image aspect ratio, e.g. 9:16, 16:9, 1:1" })),
     }),
-    async execute(toolCallId, params, signal, onUpdate, extCtx) {
-      const context = ensureContext(extCtx.cwd);
-      const tool = createMatrixTool(context);
-      const result = await tool.execute(params as Record<string, unknown>);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        details: result,
-      };
-    },
-  });
+    async (params, context) => createMatrixTool(context).execute(params),
+  );
 
   // 18c. brandly_mmx_video — MiniMax mmx CLI video generation
   registerBrandlyTool(
